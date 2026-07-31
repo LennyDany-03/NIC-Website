@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: #000000;
+  --color-foreground: #f4f4f5;
+  --color-nic-red: #ed0a14;
+  --color-nic-ember: #ff3b3b;
+  --color-nic-bone: #f4f4f5;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * Pinned panels use this instead of `h-screen`: mobile browsers grow and shrink
+ * 100vh as the URL bar hides, which makes a sticky section jitter mid-scroll.
+ * `svh` is the small (stable) viewport, so the panel never resizes under the
+ * visitor. The unlayered fallback below wins wherever `svh` is unsupported.
+ */
+@utility h-viewport {
+  height: 100svh;
+}
+
+@utility min-h-viewport {
+  min-height: 100svh;
+}
+
+/*
+ * Pulls a section up by exactly one viewport so it slides over the pinned panel
+ * above it instead of merely following it. Used twice: once to wipe the hero
+ * over the locked badge, and once to float the copy over the city flythrough.
+ */
+@utility pull-up-viewport {
+  margin-top: -100svh;
+}
+
+@supports not (height: 100svh) {
+  .h-viewport {
+    height: 100vh;
+  }
+  .min-h-viewport {
+    min-height: 100vh;
+  }
+  .pull-up-viewport {
+    margin-top: -100vh;
   }
 }
 
+html {
+  /*
+   * The smooth-scroll layer writes `scrollTo` every frame and tweens anchors
+   * itself. Native smooth scrolling would animate each of those writes and
+   * fight it, so it stays explicitly off.
+   */
+  scroll-behavior: auto;
+  /*
+   * The loader and the mobile sheet both pin the page with `overflow: hidden`,
+   * which takes the scrollbar away and shifts every centred thing sideways as
+   * it lifts. Reserving the gutter permanently keeps the badge from jumping at
+   * the exact moment the intro is handed over.
+   */
+  scrollbar-gutter: stable;
+  color-scheme: dark;
+  background-color: #000000;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #000000;
+  color: var(--color-foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overscroll-behavior-y: none;
+}
+
+::selection {
+  background-color: #ed0a14;
+  color: #ffffff;
 }
