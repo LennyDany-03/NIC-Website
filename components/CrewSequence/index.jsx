@@ -61,23 +61,32 @@ const PORTRAIT_BOX = "h-[var(--portrait-h)] w-[calc(var(--portrait-h)*0.8)]";
  * Three seats across, capped by the height of the screen rather than by its
  * width.
  *
- * The row is a slide, so the whole of it — header, three cards, three names —
- * has to stand inside one viewport or the deck quietly stops advancing it and
- * the visitor hand-scrolls through a row that was supposed to arrive in one
- * gesture. Width alone cannot promise that: at `max-w-6xl` a 3:4 card is 384px
- * tall on every screen, which is most of a laptop's height before anything else
- * has been laid out.
+ * The row is a slide, so the whole of it — header and three cards — has to
+ * stand inside one viewport or the deck quietly stops advancing it and the
+ * visitor hand-scrolls through a row that was supposed to arrive in one
+ * gesture. Width alone cannot promise that: at `max-w-6xl` a tall card is most
+ * of a laptop's height before anything else has been laid out.
  *
- * So the grid is capped by what its own cards would cost vertically. Three
- * cards at 3:4 come to `2.25 x` the height allowed for one, plus the two gaps —
- * hence `108vh + 4rem` for a card that may take at most 48vh. Under that the
- * cards are as large as the screen can carry; over it, on a wide desktop,
- * `72rem` takes over and they stop growing. On a phone `108vh` is far wider
- * than the screen, so the row falls back to being width-driven, which is what
- * a phone wanted anyway.
+ * So the grid is capped by what its own cards would cost vertically, and the
+ * arithmetic is the card's own shape. A card is a 4:5 portrait with a caption
+ * band under it, so its height is `1.25 w + 6rem`. Allowing one card 62vh gives
+ * `w <= 49.6vh - 4.8rem`, and three of those plus two `2rem` gaps is the
+ * `148.8vh - 10.4rem` below.
+ *
+ * 62vh rather than the 48 this was: the name used to hang outside the card on
+ * its own line and the role was a hairline stamped over the photo, both of them
+ * paid for out of the same budget and neither of them legible. Folding them
+ * into a caption inside the card spends that height on type that can actually
+ * be read, and there was slack besides — a row at this cap uses about two
+ * thirds of a 900px screen once the slide's own padding is counted.
+ *
+ * Under the cap the cards are as large as the screen can carry; over it, on a
+ * wide desktop, `72rem` takes over and they stop growing. On a phone the vh
+ * term is far wider than the screen, so the row falls back to being
+ * width-driven, which is what a phone wanted anyway.
  */
-const SEAT_BAND = "mx-auto w-full max-w-[min(72rem,calc(108vh+4rem))]";
-const SEAT_GRID = `${SEAT_BAND} grid grid-cols-3 gap-3 sm:gap-5 lg:gap-8`;
+const SEAT_BAND = "mx-auto w-full max-w-[min(72rem,calc(148.8vh-10.4rem))]";
+const SEAT_GRID = `${SEAT_BAND} grid grid-cols-3 items-stretch gap-3 sm:gap-5 lg:gap-8`;
 
 /**
  * Two sizes of title screen, because the two kinds of title are two very
@@ -290,7 +299,7 @@ function SeatCard({ member, onOpen }) {
   const named = Boolean(member.name);
 
   return (
-    <motion.div variants={seatCard} className="group relative">
+    <motion.div variants={seatCard} className="group relative h-full">
       <button
         type="button"
         onClick={() => onOpen(member)}
@@ -300,76 +309,220 @@ function SeatCard({ member, onOpen }) {
             ? `${member.name}, ${member.role} — open profile`
             : `${member.role} — seat open`
         }
-        className="block w-full text-left focus-visible:outline-none"
+        className="flex h-full w-full text-left focus-visible:outline-none"
       >
+        {/*
+         * The lift is the same one the faculty portraits take, with the ember
+         * behind it borrowed from the corridor: a card that opens something
+         * should come off the wall when it is pointed at.
+         */}
         <div
-          className={`relative aspect-3/4 overflow-hidden border transition-colors duration-500 group-focus-within:border-nic-red ${
+          className={`flex h-full w-full flex-col border transition-all duration-500 ease-out group-focus-within:border-nic-red ${
             named
-              ? "border-white/12 bg-zinc-900 group-hover:border-nic-red/60"
-              : "border-white/8 bg-zinc-950 group-hover:border-white/25"
+              ? "border-white/12 bg-zinc-950 group-hover:-translate-y-1.5 group-hover:border-nic-red/70 group-hover:shadow-[0_26px_60px_-24px_rgba(237,10,20,0.55)]"
+              : "border-white/8 bg-zinc-950 group-hover:-translate-y-1 group-hover:border-white/25"
           }`}
         >
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.16] mix-blend-screen"
-            style={{ backgroundImage: GRAIN_PLATE }}
-          />
-
-          {member.photo ? (
-            <Image
-              src={member.photo}
-              alt=""
-              fill
-              sizes="(max-width: 640px) 30vw, (max-width: 1024px) 28vw, 22vw"
-              className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-            />
-          ) : (
+          {/* ------------------------------------------------------ the print */}
+          <div className="relative aspect-4/5 w-full shrink-0 overflow-hidden bg-zinc-900">
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-4xl font-black text-white/[0.06] sm:text-6xl lg:text-7xl"
-            >
-              {member.index}
-            </span>
-          )}
+              className="pointer-events-none absolute inset-0 z-10 opacity-[0.16] mix-blend-screen"
+              style={{ backgroundImage: GRAIN_PLATE }}
+            />
 
-          {/* Keeps the role legible over a photo as easily as over the plate. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/80 to-transparent"
-          />
-          <span className="absolute left-2 top-2 max-w-[86%] font-mono text-[8px] uppercase leading-tight tracking-[0.16em] text-white/90 sm:left-3 sm:top-3 sm:text-[10px]">
-            {member.role}
-          </span>
+            {member.photo ? (
+              /*
+               * Held slightly off full colour at rest and let all the way up on
+               * hover. These are fifteen snapshots taken by fifteen people in
+               * fifteen different lights — a stairwell, a hedge, a classroom —
+               * and at three to a row the clash between them is the first thing
+               * seen. Pulling the saturation back is what makes them read as
+               * one set; the hover is what gives the photograph back.
+               */
+              <Image
+                src={member.photo}
+                alt=""
+                fill
+                sizes="(max-width: 640px) 30vw, (max-width: 1024px) 28vw, 22vw"
+                className="object-cover object-top saturate-[0.72] transition-all duration-700 ease-out group-hover:scale-[1.05] group-hover:saturate-100"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-4xl font-black text-white/[0.06] sm:text-6xl lg:text-7xl"
+              >
+                {member.index}
+              </span>
+            )}
+
+            {/* The print does not stop at the plate, it falls into it. No
+                z-index: it has to paint over the photograph and under the
+                bottom-right tick, which is exactly DOM order between the two. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] bg-linear-to-t from-zinc-950 via-zinc-950/30 to-transparent"
+            />
+
+            <CornerTicks />
+          </div>
+
+          {/* ---------------------------------------------------- the caption */}
+          {/*
+           * Underneath the print, not over it. The role used to be an 8px
+           * hairline stamped into the top corner of the photograph, held up by
+           * nothing but a gradient, and the name hung outside the card on the
+           * corridor — so the two things the card exists to say were the two
+           * least readable things on the screen.
+           *
+           * The post is a tag: bold mono, held in a red-tinted well with a
+           * solid red edge down its leading side. It went through a solid red
+           * block on the way here and that was too much — three of them to a
+           * row, over a corridor that is itself red, and the boldest thing on
+           * the screen was the job title rather than the person holding it. The
+           * tint keeps the weight and the colour and gives back the hierarchy:
+           * the name reads first, the post reads immediately after.
+           *
+           * `flex-1` rather than a fixed height. The grid stretches every card
+           * in a row to the tallest, so a long role — "Joint Head of Working
+           * Committee" wraps at phone widths — lifts all three captions
+           * together and the row stays a row rather than three ragged columns.
+           */}
+          <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 border-t border-white/10 px-2 py-2.5 sm:gap-2.5 sm:px-4 sm:py-4">
+            <span
+              className={`w-fit max-w-full border-l-2 py-0.5 pl-1.5 pr-1.5 font-mono text-[8px] font-bold uppercase leading-tight tracking-[0.12em] sm:py-1 sm:pl-2 sm:pr-2.5 sm:text-[10px] sm:tracking-[0.15em] lg:text-[11px] ${
+                named
+                  ? "border-nic-red bg-nic-red/12 text-[#ff6b6b]"
+                  : "border-white/25 bg-white/5 text-zinc-400"
+              }`}
+            >
+              {member.role}
+            </span>
+
+            <span
+              className={`text-[12px] font-black uppercase leading-[1.1] tracking-[0.01em] sm:text-[16px] lg:text-[19px] ${
+                named ? "text-white" : "text-zinc-500"
+              }`}
+            >
+              {named ? member.name : "Seat open"}
+            </span>
+          </div>
 
           {/*
-           * The affordance. A card that opens something has to say so, and it
-           * has to say it without taking a line of the plate away from the role
-           * — so it lives in the bottom edge and only exists on hover.
+           * The affordance, moved to the foot of the card. It used to be a red
+           * bar that slid up over the bottom of the photograph, which is now
+           * where the caption lives — and a rule that draws itself across the
+           * whole width says "this opens" without asking for a line of its own.
            */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-nic-red/90 py-1.5 text-center font-mono text-[8px] uppercase tracking-[0.24em] text-white transition-transform duration-500 ease-out group-hover:translate-y-0 group-focus-within:translate-y-0 sm:text-[9px]"
-          >
-            {named ? "View" : "Details"}
-          </span>
-
-          <CornerTicks />
-        </div>
-
-        <div className="mt-2 sm:mt-3">
-          <span
-            className={`block text-[11px] font-black uppercase leading-tight tracking-[0.04em] drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)] sm:text-sm lg:text-base ${
-              named ? "text-white" : "text-zinc-500"
-            }`}
-          >
-            {named ? member.name : "Seat open"}
-          </span>
-          <span
-            aria-hidden
-            className="mt-2 block h-px w-6 bg-nic-red/70 transition-all duration-500 group-hover:w-14 sm:w-8"
+            className="h-[2px] w-0 bg-nic-red transition-all duration-500 ease-out group-hover:w-full group-focus-within:w-full"
           />
         </div>
       </button>
+    </motion.div>
+  );
+}
+
+/**
+ * The running head above a row of seats.
+ *
+ * It used to be two black lozenges floating at either end of the screen, and
+ * that was wrong in three ways at once. Nothing else in this section is round —
+ * the cards are hard rectangles, the ticks are right angles, the seams are
+ * one-pixel rules — so a pill read as borrowed from another page. The two ends
+ * had nothing to do with each other, which left the top of the slide as two
+ * unrelated blobs over a corridor rather than one instrument. And the type was
+ * red on black on a corridor that is itself red, which is the lowest-contrast
+ * combination available here.
+ *
+ * So: one rail, not two plates. A hairline runs the width of the seat band and
+ * both readouts hang off it — the slate on the left, the counter on the right —
+ * which puts them on a shared axis and lines the whole head up with the grid
+ * edges below. The rule is what crosses the blown-out part of the corridor, and
+ * a hairline survives that; the type never leaves its own plate.
+ *
+ * The red edge on the slate is the corridor's own light column, cut down to
+ * label size — the same element the faculty portraits are stood against a few
+ * screens earlier. It replaces the eyebrow's little dash, which was doing the
+ * same job with less to say.
+ *
+ * Contrast is split rather than turned up: the board name goes white and only
+ * the seat range stays red. One accent on the line is legible on red; two are a
+ * line that vibrates.
+ */
+function RowHead({ board, row, index, rows }) {
+  const first = row[0].index;
+  const last = row[row.length - 1].index;
+
+  return (
+    <motion.div
+      variants={slideRise}
+      // No wrapping. The rule is a flex child that eats all the slack, so the
+      // two readouts are pushed apart rather than pushed onto a second line —
+      // and a rail that has wrapped is a rail with a plate sitting on it.
+      className={`flex items-center gap-4 ${SEAT_BAND}`}
+    >
+      <div className="flex min-w-0 shrink items-stretch">
+        <span
+          aria-hidden
+          className="w-1 shrink-0 bg-nic-red shadow-[0_0_18px_3px_rgba(237,10,20,0.6)] sm:w-[5px]"
+        />
+        <span className="flex min-w-0 items-center gap-3 bg-black/80 py-2.5 pl-4 pr-5 sm:gap-4 sm:bg-black/70 sm:py-3 sm:pl-5 sm:pr-6 sm:backdrop-blur-sm">
+          <span
+            className={`truncate font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-white sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
+          >
+            {board.short}
+          </span>
+          <span aria-hidden className="h-4 w-px shrink-0 bg-white/25" />
+          {/*
+           * A lighter red than the brand's. #ed0a14 is a heading colour — at
+           * label size, on black, over a corridor that is itself red, it goes
+           * muddy and this line is the one thing on the slide that has to be
+           * read at a glance. The lift is the same red the corridor's own light
+           * bars are drawn in, so it is still the section's palette.
+           */}
+          <span
+            className={`shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-[#ff3b3b] sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
+          >
+            Seats {first}–{last}
+          </span>
+        </span>
+      </div>
+
+      <span
+        aria-hidden
+        className="h-px min-w-0 flex-1 bg-linear-to-r from-white/30 via-white/12 to-white/30"
+      />
+
+      {/* The counter says the same thing the rule's position says, and it is
+          the first thing to go when there is no width for it. */}
+      <div
+        aria-hidden
+        className="hidden shrink-0 items-center gap-3.5 bg-black/70 px-5 py-3 sm:flex sm:backdrop-blur-sm"
+      >
+        <span className="font-mono text-[13px] font-medium tracking-[0.24em]">
+          <span className="text-white">
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <span className="text-zinc-600">
+            {" / "}
+            {String(rows.length).padStart(2, "0")}
+          </span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          {rows.map((other, position) => (
+            <span
+              key={other[0].id}
+              className={`h-[3px] transition-all duration-500 ${
+                position === index
+                  ? "w-10 bg-nic-red shadow-[0_0_10px_1px_rgba(237,10,20,0.7)]"
+                  : "w-4 bg-white/25"
+              }`}
+            />
+          ))}
+        </span>
+      </div>
     </motion.div>
   );
 }
@@ -416,44 +569,7 @@ function BoardDeck({ board, onOpen }) {
            * board this is at full size, so all these three have to do is hold
            * the thread — which board, which seats, and how much of it is left.
            */}
-          {/*
-           * Both ends sit on a plate of their own. This line runs across the
-           * top third of the screen, which is where the corridor's left wall is
-           * blown out near-white by the light bars — and small red mono type
-           * with nothing behind it is the one thing on the page that cannot
-           * survive that. Legibility is bought locally here, the same way the
-           * body copy buys it with PANEL.
-           */}
-          <motion.div
-            variants={slideRise}
-            className={`flex flex-wrap items-center justify-between gap-x-8 gap-y-3 ${SEAT_BAND}`}
-          >
-            <span className="rounded-full bg-black/55 px-4 py-2 sm:backdrop-blur-sm">
-              <Eyebrow>
-                {board.short} · Seats {row[0].index}–{row[row.length - 1].index}
-              </Eyebrow>
-            </span>
-
-            <div
-              aria-hidden
-              className="hidden items-center gap-3 rounded-full bg-black/55 px-4 py-2 sm:flex sm:backdrop-blur-sm"
-            >
-              <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-400">
-                {String(index + 1).padStart(2, "0")} /{" "}
-                {String(rows.length).padStart(2, "0")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                {rows.map((other, position) => (
-                  <span
-                    key={other[0].id}
-                    className={`h-[3px] ${
-                      position === index ? "w-8 bg-nic-red" : "w-5 bg-white/25"
-                    }`}
-                  />
-                ))}
-              </span>
-            </div>
-          </motion.div>
+          <RowHead board={board} row={row} index={index} rows={rows} />
 
           <motion.div variants={seatRow} className={`mt-8 ${SEAT_GRID}`}>
             {row.map((member) => (

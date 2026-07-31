@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import ContactIcon from "../ContactIcons";
 import CornerTicks from "../CornerTicks";
 import { GRAIN_PLATE } from "../surfaces";
 
@@ -20,15 +21,112 @@ import { GRAIN_PLATE } from "../surfaces";
  * z-index it asks for. A portal is the only way out of that.
  */
 
-/** Ordered, so a member with more than one always reads the same way. */
-const LINKS = [
+/**
+ * The four channels, in a fixed order, whether or not this member has them.
+ *
+ * Fixed because the strip is the same object on every card: four tiles, always
+ * the same four, in the same places. A row that only carried the handles that
+ * happened to exist would be a different width and a different shape on every
+ * seat, and on the seats with nothing at all it would vanish and take the whole
+ * "contact" idea with it — which is the one thing on the card a visitor is
+ * looking for. A channel with no handle stays in place, dimmed and dead, the
+ * same way an unfilled seat stays in the roster.
+ */
+const CHANNELS = [
+  { key: "email", label: "Email" },
+  { key: "instagram", label: "Instagram" },
   { key: "linkedin", label: "LinkedIn" },
   { key: "github", label: "GitHub" },
-  { key: "instagram", label: "Instagram" },
-  { key: "email", label: "Email" },
 ];
 
 const hrefFor = (key, value) => (key === "email" ? `mailto:${value}` : value);
+
+const TILE =
+  "group/tile relative flex h-12 w-12 items-center justify-center border transition-all duration-300";
+
+/**
+ * One channel. A live one is a link; a missing one is a `span`, because there
+ * is nothing behind it to go to and a disabled anchor is still a tab stop.
+ *
+ * The dead tile is not hidden from assistive tech either — "Instagram, not
+ * listed" is a real answer to the question the strip is there to answer, and a
+ * silently absent icon is not.
+ */
+function ContactTile({ channel, href }) {
+  const { key, label } = channel;
+
+  if (!href) {
+    return (
+      <li>
+        <span
+          title={`${label} — not listed`}
+          className={`${TILE} cursor-default border-white/6 bg-white/[0.015] text-zinc-700`}
+        >
+          <ContactIcon name={key} className="h-[18px] w-[18px]" />
+          <span className="sr-only">{label} — not listed</span>
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <a
+        href={href}
+        target={key === "email" ? undefined : "_blank"}
+        rel={key === "email" ? undefined : "noreferrer"}
+        title={label}
+        className={`${TILE} border-white/15 bg-white/[0.03] text-zinc-300 hover:-translate-y-0.5 hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:-translate-y-0.5 focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none`}
+      >
+        <ContactIcon name={key} className="h-[18px] w-[18px]" />
+        <span className="sr-only">{label}</span>
+        {/* The corner tick the rest of the section is built from, at tile
+            scale — one mark, on the corner the eye lands on. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-0 top-0 h-2 w-2 border-r border-t border-nic-red/0 transition-colors duration-300 group-hover/tile:border-nic-red"
+        />
+      </a>
+    </li>
+  );
+}
+
+/**
+ * The contact strip. Only ever shown for a named seat — an open seat has nobody
+ * to reach, and four dead tiles under "seat open" would be saying that twice.
+ */
+function ContactStrip({ links }) {
+  const live = CHANNELS.filter(({ key }) => links?.[key]);
+
+  return (
+    <div className="relative mt-8 border-t border-white/8 pt-6">
+      <span className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.3em] text-nic-red">
+        <span aria-hidden className="h-px w-4 bg-nic-red/70" />
+        Contact
+      </span>
+
+      <ul className="mt-4 flex flex-wrap gap-2.5">
+        {CHANNELS.map((channel) => (
+          <ContactTile
+            key={channel.key}
+            channel={channel}
+            href={
+              links?.[channel.key]
+                ? hrefFor(channel.key, links[channel.key])
+                : null
+            }
+          />
+        ))}
+      </ul>
+
+      {live.length === 0 && (
+        <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-zinc-600">
+          Handles not listed yet
+        </p>
+      )}
+    </div>
+  );
+}
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -62,7 +160,6 @@ export default function MemberDialog({ member, onClose }) {
   const open = Boolean(member);
   const person = member ?? shown;
   const named = Boolean(person?.name);
-  const links = LINKS.filter(({ key }) => person?.links?.[key]);
 
   useEffect(() => setMounted(true), []);
 
@@ -180,22 +277,23 @@ export default function MemberDialog({ member, onClose }) {
             aria-modal="true"
             aria-labelledby={titleId}
             tabIndex={-1}
-            className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-white/12 bg-zinc-950 shadow-[0_40px_120px_-30px_rgba(0,0,0,1)] outline-none sm:max-h-[86svh] sm:rounded-2xl"
+            className="relative flex max-h-[92svh] w-full max-w-3xl flex-col overflow-hidden border border-white/15 bg-zinc-950 shadow-[0_40px_120px_-30px_rgba(0,0,0,1)] outline-none sm:max-h-[86svh]"
             {...panelMotion}
           >
-            {/* The one red edge, borrowed from the section's leading seam. */}
+            {/* The leading seam, solid rather than a hairline fade — at panel
+                width the fade had nothing left in the middle to read as red. */}
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-linear-to-r from-transparent via-nic-red to-transparent"
+              className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[3px] bg-nic-red shadow-[0_0_20px_3px_rgba(237,10,20,0.5)]"
             />
 
             <button
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/70 text-zinc-300 backdrop-blur-sm transition-colors hover:border-nic-red/60 hover:text-white focus-visible:border-nic-red focus-visible:text-white focus-visible:outline-none sm:right-4 sm:top-4"
+              className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center border border-white/20 bg-black/80 text-zinc-300 backdrop-blur-sm transition-colors hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none sm:right-4 sm:top-4"
             >
-              <span aria-hidden className="text-lg leading-none">
+              <span aria-hidden className="text-xl leading-none">
                 ×
               </span>
             </button>
@@ -245,58 +343,69 @@ export default function MemberDialog({ member, onClose }) {
                 </figure>
 
                 {/* -------------------------------------------- who they are */}
-                <div className="p-6 sm:p-8">
-                  <span className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-nic-red">
+                {/*
+                 * The same three marks the card carries, in the same order and
+                 * the same colours — board, name, stamped post — so opening a
+                 * card reads as that card getting bigger rather than as a
+                 * different object arriving over it.
+                 */}
+                <div className="relative p-6 pr-16 sm:p-8 sm:pr-20">
+                  <span className="relative flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-nic-red">
                     <span aria-hidden className="h-px w-5 bg-nic-red/70" />
                     {person.board}
                   </span>
 
                   <h2
                     id={titleId}
-                    className={`mt-5 text-2xl font-black uppercase leading-[0.95] tracking-tight sm:text-3xl ${
+                    className={`relative mt-5 text-[1.75rem] font-black uppercase leading-[0.95] tracking-tight sm:text-4xl ${
                       named ? "text-white" : "text-zinc-500"
                     }`}
                   >
                     {named ? person.name : "Seat open"}
                   </h2>
 
-                  <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.26em] text-zinc-400 sm:text-[11px]">
-                    {person.role} · {person.index}
-                  </p>
+                  {/*
+                   * The tag, lifted straight off the card, with the seat number
+                   * set beside it rather than tacked onto the role with a
+                   * middot. Inside the tag it read as part of the job title;
+                   * out here it is what it is — which seat of the board.
+                   */}
+                  <span className="relative mt-4 flex flex-wrap items-center gap-3">
+                    <span
+                      className={`inline-block border-l-2 py-1 pl-2 pr-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.15em] sm:text-[11px] ${
+                        named
+                          ? "border-nic-red bg-nic-red/12 text-[#ff6b6b]"
+                          : "border-white/25 bg-white/5 text-zinc-400"
+                      }`}
+                    >
+                      {person.role}
+                    </span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-600">
+                      Seat {person.index}
+                    </span>
+                  </span>
 
-                  <span aria-hidden className="mt-6 block h-px w-12 bg-nic-red" />
+                  <span
+                    aria-hidden
+                    className="relative mt-6 block h-px w-12 bg-nic-red"
+                  />
 
-                  <p className="mt-6 text-sm leading-relaxed text-zinc-400 sm:leading-[1.75]">
+                  <p className="relative mt-6 text-sm leading-relaxed text-zinc-400 sm:leading-[1.75]">
                     {named
                       ? person.bio ||
                         "No write-up for this seat yet — the name is in, the paragraph is still being written."
-                      : "No one has been named to this seat yet. It is held open in the roster rather than hidden, so the board reads as what it is: nine posts, some of them still to be filled."}
+                      : "No one has been named to this seat yet. It is held open in the roster rather than hidden, so the board reads as what it is — a set of posts, some of them still to be filled."}
                   </p>
 
                   {(person.year || person.department || person.focus) && (
-                    <dl className="mt-7 border-t border-white/8 pt-3">
+                    <dl className="relative mt-7 border-t border-white/8 pt-3">
                       <Meta label="Year" value={person.year} />
                       <Meta label="Department" value={person.department} />
                       <Meta label="Focus" value={person.focus} />
                     </dl>
                   )}
 
-                  {links.length > 0 && (
-                    <ul className="mt-7 flex flex-wrap gap-2">
-                      {links.map(({ key, label }) => (
-                        <li key={key}>
-                          <a
-                            href={hrefFor(key, person.links[key])}
-                            target={key === "email" ? undefined : "_blank"}
-                            rel={key === "email" ? undefined : "noreferrer"}
-                            className="block rounded-full border border-white/15 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-nic-red/60 hover:text-white focus-visible:border-nic-red focus-visible:text-white focus-visible:outline-none"
-                          >
-                            {label}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  {named && <ContactStrip links={person.links} />}
                 </div>
               </div>
             </div>
