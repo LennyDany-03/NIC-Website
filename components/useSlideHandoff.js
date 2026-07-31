@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMotionValueEvent, useReducedMotion } from "framer-motion";
-import { isAutoScrolling, smoothScrollTo } from "./smoothScroll";
+import {
+  EASE_PUSH,
+  SETTLE_MS,
+  isAutoScrolling,
+  smoothScrollTo,
+} from "./smoothScroll";
 
 /**
  * Advances a pinned section the way a deck advances a slide: once its content
@@ -46,6 +51,16 @@ import { isAutoScrolling, smoothScrollTo } from "./smoothScroll";
 const NOTCH = 0.08;
 /** Subpixel slack on "are we standing on the handover mark?". */
 const SETTLED_PX = 2;
+/**
+ * How long a push takes, and the one tempo the whole deck runs at.
+ *
+ * A slide advance is a cut, not a journey. Anything approaching a second reads
+ * as the page deciding to take you somewhere; under it, the next slide is
+ * simply there, and the gesture and the result feel like the same event. This
+ * is also short enough to stay inside the burst of wheel input that triggered
+ * it, which is what `SETTLE_MS` afterwards is for.
+ */
+export const PUSH_MS = 700;
 
 export default function useSlideHandoff({
   sectionRef,
@@ -54,7 +69,7 @@ export default function useSlideHandoff({
   triggerAt,
   rearmMargin = 0.08,
   holdMs = 0,
-  pushMs = 950,
+  pushMs = PUSH_MS,
   land = "bottom",
   canFire,
   enabled = true,
@@ -119,7 +134,12 @@ export default function useSlideHandoff({
   const push = useCallback(() => {
     const to = handoverY();
     if (to === null) return;
-    smoothScrollTo(to, { duration: pushMs, grace: pushMs });
+    smoothScrollTo(to, {
+      duration: pushMs,
+      grace: pushMs,
+      settle: SETTLE_MS,
+      ease: EASE_PUSH,
+    });
   }, [handoverY, pushMs]);
 
   /** The same travel, played the other way: the slide comes back down whole. */
@@ -129,6 +149,8 @@ export default function useSlideHandoff({
     smoothScrollTo(from - window.innerHeight, {
       duration: pushMs,
       grace: pushMs,
+      settle: SETTLE_MS,
+      ease: EASE_PUSH,
     });
   }, [handoverY, pushMs]);
 

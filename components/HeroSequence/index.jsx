@@ -16,7 +16,7 @@ import Slide, {
   SLIDE_TRIGGER_AT,
 } from "../Slide";
 import useSlideHandoff from "../useSlideHandoff";
-import { rise, riseTransition } from "../motionPresets";
+import { slideRise } from "../motionPresets";
 import { DEPARTMENT, MEET_US, VISION_MISSION } from "./content";
 
 /**
@@ -41,9 +41,49 @@ import { DEPARTMENT, MEET_US, VISION_MISSION } from "./content";
  */
 const RUNWAY_OFFSET = ["start end", "start start"];
 
+/**
+ * Legibility is bought locally, not globally.
+ *
+ * Blacking out the entire frame to carry a column of body copy is what was
+ * costing this section its backdrop: the city is the reason the slides are
+ * pinned over a flythrough at all, and at a flat 70% it may as well have been
+ * a still. So the scrim comes down to something that only takes the glare off
+ * the neon, and every block of running text sits on a panel of its own that is
+ * as dark as that text actually needs. The city stays lit in the gaps between
+ * them, which is where it was always meant to be seen.
+ *
+ * Blur only from `sm` up, for the reason the vision cards already document:
+ * re-blurring a large surface over a canvas that repaints every frame is the
+ * one thing that drops frames on a phone. Opacity carries legibility there.
+ */
+const PANEL =
+  "rounded-2xl border border-white/10 bg-black/70 p-6 sm:bg-black/55 sm:p-7 sm:backdrop-blur-md";
+
+/**
+ * Headings sit on the city rather than on a panel — they are large enough and
+ * heavy enough to, and putting them in a box would cost the section the one
+ * moment where the type and the backdrop actually meet. A shadow is all they
+ * need to survive a bright window passing behind them.
+ */
+const HEADING_SHADOW = "drop-shadow-[0_2px_26px_rgba(0,0,0,0.92)]";
+
+/**
+ * Type scales off the shorter of the two axes.
+ *
+ * These slides advance as a unit only while they fit on one screen, so height
+ * is a real constraint on the display sizes and not just width — a 16:9 laptop
+ * at 768px has far less room than its width suggests. Clamping against `vh` as
+ * well as `vw` keeps a heading from being the thing that pushes a slide over
+ * the edge and quietly turns the deck off for it.
+ */
+const HEADING_XL = "text-[clamp(2.5rem,min(8vw,11vh),5.5rem)]";
+const HEADING_LG = "text-[clamp(2rem,min(6.5vw,9vh),4.25rem)]";
+const HEADING_MD = "text-[clamp(1.75rem,min(5vw,7vh),3.25rem)]";
+
 function Eyebrow({ children }) {
   return (
-    <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red sm:text-xs">
+    <span className="inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)] sm:text-xs">
+      <span aria-hidden className="h-px w-6 bg-nic-red/70" />
       {children}
     </span>
   );
@@ -108,11 +148,16 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
         style={prefersReducedMotion ? undefined : { y: exitY }}
       >
         <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
-        {/* Enough scrim for body copy to hold up, not so much that the neon dies. */}
-        <div aria-hidden className="absolute inset-0 bg-black/70" />
+        {/* Takes the glare off the neon. The panels do the rest — see PANEL. */}
+        <div aria-hidden className="absolute inset-0 bg-black/40" />
+        {/* Frames the shot and hides the letterbox seam on tall screens. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_0%,rgba(0,0,0,0.55)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.5)_100%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.75),rgba(0,0,0,0))]"
         />
       </motion.div>
 
@@ -121,46 +166,61 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
           {/* ---------------------------------------------------- Meet us */}
           <Slide id="meet-us">
-            <motion.div variants={rise} transition={riseTransition}>
-              <Eyebrow>{MEET_US.eyebrow}</Eyebrow>
-            </motion.div>
+            {/*
+             * Title, copy and photograph share one band rather than stacking,
+             * because stacked this slide is taller than any laptop screen —
+             * and a slide that doesn't fit is one the deck stops advancing.
+             * Side by side it also finally reads as a spread: the club stated
+             * on the left, the club shown on the right.
+             */}
+            <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+              <div>
+                <motion.div variants={slideRise}>
+                  <Eyebrow>{MEET_US.eyebrow}</Eyebrow>
+                </motion.div>
 
-            <motion.h2
-              variants={rise}
-              transition={riseTransition}
-              className="mt-6 text-[clamp(3rem,14vw,8rem)] font-black uppercase leading-[0.85] tracking-tight text-white"
-            >
-              {MEET_US.lead}
-              <br />
-              <span className="text-nic-red">{MEET_US.accent}</span>
-            </motion.h2>
+                <motion.h2
+                  variants={slideRise}
+                  className={`mt-5 font-black uppercase leading-[0.85] tracking-tight text-white ${HEADING_XL} ${HEADING_SHADOW}`}
+                >
+                  {MEET_US.lead}
+                  <br />
+                  <span className="text-nic-red">{MEET_US.accent}</span>
+                </motion.h2>
 
-            <div className="mt-12 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-16">
-              <motion.p
-                variants={rise}
-                transition={riseTransition}
-                className="text-sm leading-relaxed text-zinc-300 sm:text-base sm:leading-loose"
-              >
-                {MEET_US.body}
-              </motion.p>
+                <motion.div variants={slideRise} className={`mt-8 ${PANEL}`}>
+                  <p className="text-[15px] leading-relaxed text-white sm:text-base sm:leading-[1.65]">
+                    {MEET_US.standfirst}
+                  </p>
+                  <span
+                    aria-hidden
+                    className="mt-5 block h-px w-10 bg-nic-red"
+                  />
+                  <p className="mt-5 text-sm leading-relaxed text-zinc-400 sm:leading-[1.7]">
+                    {MEET_US.body}
+                  </p>
+                </motion.div>
+              </div>
 
-              <motion.figure
-                variants={rise}
-                transition={riseTransition}
-                className="relative"
-              >
-                <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/40">
+              <motion.figure variants={slideRise} className="relative">
+                {/* The plate the photograph is lit against. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-4 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(237,10,20,0.16)_0%,rgba(237,10,20,0)_70%)]"
+                />
+
+                <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/40 shadow-[0_24px_70px_-20px_rgba(0,0,0,0.9)]">
                   <Image
                     src={MEET_US.photo.src}
                     alt={MEET_US.photo.alt}
                     width={MEET_US.photo.width}
                     height={MEET_US.photo.height}
-                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    sizes="(max-width: 1024px) 92vw, 46vw"
                     className="h-auto w-full object-cover"
                   />
                   <div
                     aria-hidden
-                    className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.55),rgba(0,0,0,0)_55%)]"
+                    className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.5),rgba(0,0,0,0)_55%)]"
                   />
                 </div>
                 {/* Corner ticks, echoing the badge's hard geometry. */}
@@ -173,13 +233,13 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                   className="pointer-events-none absolute -bottom-1 -right-1 h-6 w-6 border-b-2 border-r-2 border-nic-red"
                 />
 
-                <figcaption className="mt-6 flex flex-wrap gap-x-10 gap-y-4">
+                <figcaption className="relative mt-6 flex flex-wrap gap-x-10 gap-y-4">
                   {MEET_US.stats.map((stat) => (
                     <span key={stat.label} className="block">
-                      <span className="block font-mono text-base text-white sm:text-lg">
+                      <span className="block font-mono text-base text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)] sm:text-lg">
                         {stat.value}
                       </span>
-                      <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                      <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-400 drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)]">
                         {stat.label}
                       </span>
                     </span>
@@ -191,54 +251,52 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
 
           {/* ------------------------------------------------- Department */}
           <Slide id="department" className="border-t border-white/10">
-            <motion.div variants={rise} transition={riseTransition}>
+            <motion.div variants={slideRise}>
               <Eyebrow>{DEPARTMENT.eyebrow}</Eyebrow>
             </motion.div>
 
             <motion.h2
-              variants={rise}
-              transition={riseTransition}
-              className="mt-6 max-w-3xl text-[clamp(1.85rem,6vw,4rem)] font-black uppercase leading-[0.95] tracking-tight text-white"
+              variants={slideRise}
+              className={`mt-5 max-w-3xl font-black uppercase leading-[0.95] tracking-tight text-white ${HEADING_MD} ${HEADING_SHADOW}`}
             >
               {DEPARTMENT.title}
             </motion.h2>
 
             <motion.ul
-              variants={rise}
-              transition={riseTransition}
-              className="mt-10 flex flex-wrap gap-2"
+              variants={slideRise}
+              className="mt-7 flex flex-wrap gap-2"
             >
               {DEPARTMENT.disciplines.map((discipline) => (
                 <li
                   key={discipline}
-                  className="rounded-full border border-white/15 bg-black/50 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-300 sm:bg-white/[0.04] sm:text-[11px] sm:backdrop-blur-sm"
+                  className="rounded-full border border-white/15 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-200 sm:bg-white/[0.06] sm:text-[11px] sm:backdrop-blur-sm"
                 >
                   {discipline}
                 </li>
               ))}
             </motion.ul>
 
-            <motion.p
-              variants={rise}
-              transition={riseTransition}
-              className="mt-10 max-w-4xl text-sm leading-relaxed text-zinc-300 sm:text-base sm:leading-loose"
-            >
-              {DEPARTMENT.body}
-            </motion.p>
+            <motion.div variants={slideRise} className={`mt-7 ${PANEL}`}>
+              {/*
+               * Two columns for the same reason the meet-us slide is a spread:
+               * a single measure this long is both a tiring read and tall
+               * enough on its own to cost the slide its advance.
+               */}
+              <p className="text-sm leading-relaxed text-zinc-300 sm:leading-[1.75] lg:columns-2 lg:gap-12">
+                {DEPARTMENT.body}
+              </p>
 
-            <motion.div
-              variants={rise}
-              transition={riseTransition}
-              className="mt-10 flex items-center gap-4 border-l-2 border-nic-red pl-5"
-            >
-              <span className="block">
-                <span className="block text-base font-semibold text-white sm:text-lg">
-                  {DEPARTMENT.lead.name}
+              <div className="mt-6 flex items-center gap-4 border-t border-white/10 pt-6">
+                <span className="block h-9 w-0.5 shrink-0 bg-nic-red" />
+                <span className="block">
+                  <span className="block text-base font-semibold text-white">
+                    {DEPARTMENT.lead.name}
+                  </span>
+                  <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.28em] text-zinc-500">
+                    {DEPARTMENT.lead.role}
+                  </span>
                 </span>
-                <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                  {DEPARTMENT.lead.role}
-                </span>
-              </span>
+              </div>
             </motion.div>
           </Slide>
 
@@ -249,33 +307,28 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
             className="border-t border-white/10"
             advances={false}
           >
-            <motion.div variants={rise} transition={riseTransition}>
+            <motion.div variants={slideRise}>
               <Eyebrow>{VISION_MISSION.eyebrow}</Eyebrow>
             </motion.div>
 
             <motion.h2
-              variants={rise}
-              transition={riseTransition}
-              className="mt-6 text-[clamp(2.25rem,8vw,5.5rem)] font-black uppercase leading-[0.9] tracking-tight text-white"
+              variants={slideRise}
+              className={`mt-5 font-black uppercase leading-[0.9] tracking-tight text-white ${HEADING_LG} ${HEADING_SHADOW}`}
             >
               Vision <span className="text-nic-red">&</span> Mission
             </motion.h2>
 
-            <div className="mt-14 grid gap-6 lg:grid-cols-2">
+            <div className="mt-9 grid gap-6 lg:grid-cols-2">
               {VISION_MISSION.cards.map((card) => (
                 <motion.div
                   key={card.id}
                   id={card.id}
-                  variants={rise}
-                  transition={riseTransition}
-                  // Blur only from `sm` up: re-blurring a large panel over a
-                  // repainting canvas every frame is the one thing that drops
-                  // frames on a phone. Opacity carries legibility instead.
-                  className="group relative overflow-hidden rounded-2xl border border-white/12 bg-black/75 p-7 transition-colors duration-500 hover:border-nic-red/50 sm:bg-black/50 sm:p-9 sm:backdrop-blur-md"
+                  variants={slideRise}
+                  className={`group relative overflow-hidden transition-colors duration-500 hover:border-nic-red/50 ${PANEL}`}
                 >
                   <span
                     aria-hidden
-                    className="absolute right-6 top-6 font-mono text-5xl font-black text-white/5 sm:text-6xl"
+                    className="absolute right-6 top-5 font-mono text-5xl font-black text-white/[0.07] sm:text-6xl"
                   >
                     {card.index}
                   </span>
@@ -284,9 +337,9 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                   </h3>
                   <span
                     aria-hidden
-                    className="relative mt-5 block h-px w-12 bg-nic-red transition-all duration-500 group-hover:w-24"
+                    className="relative mt-4 block h-px w-12 bg-nic-red transition-all duration-500 group-hover:w-24"
                   />
-                  <p className="relative mt-6 text-sm leading-relaxed text-zinc-400 sm:text-[15px] sm:leading-loose">
+                  <p className="relative mt-5 text-sm leading-relaxed text-zinc-400 sm:leading-[1.7]">
                     {card.body}
                   </p>
                 </motion.div>

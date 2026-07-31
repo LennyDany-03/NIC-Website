@@ -35,12 +35,6 @@ const HANDOFF_AT = 0.5;
  * The beat exists so the club's name is never yanked off screen unread.
  */
 const HOLD_MS = 900;
-/**
- * A slide advance is one gesture, not a scrub — so the push is uninterruptible
- * for its whole length. Nothing lands the visitor stranded half way between
- * two slides.
- */
-const PUSH_MS = 950;
 /** Backing off this far past the badge re-arms it for a second viewing. */
 const REARM_MARGIN = 0.08;
 /**
@@ -90,7 +84,6 @@ export default function NicLogoIntro({ framesRef, ready, started }) {
     triggerAt: HANDOFF_AT,
     rearmMargin: REARM_MARGIN,
     holdMs: HOLD_MS,
-    pushMs: PUSH_MS,
     canFire: badgeIsBuilt,
     enabled: started,
   });

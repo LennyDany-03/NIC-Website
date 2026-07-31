@@ -1,13 +1,20 @@
+/**
+ * The body is split rather than shortened. Every word of it still ships — the
+ * standfirst is simply set apart and set larger, which is what a slide of copy
+ * needs to be read at a glance instead of waded into, and what keeps the whole
+ * slide inside one screen so the deck can advance it as one.
+ */
 export const MEET_US = {
   eyebrow: "01 — Who we are",
   lead: "Meet",
   accent: "Us",
-  body: `Inaugurated on July 18th, 2024, the Next Gen Intelligence Club (NIC) has been meticulously crafted by the Department of CSE-ETECH. Our primary goal is to empower students to enhance their technical prowess with Next-Generation Technology. At NIC, we offer a platform for students to integrate their skills across various domains of Engineering and Technology based on the Artificial Intelligence. Our club conducts a wide array of events and activities that emphasize the significance of technical knowledge and highlight current trends. These include workshops, seminars, certification drives, knowledge-sharing sessions, and symposiums. Join us on this exciting journey of learning, exploration, and teamwork. What are you waiting for? Embark on a path to excellence with NIC!`,
+  standfirst: `Inaugurated on July 18th, 2024, the Next Gen Intelligence Club (NIC) has been meticulously crafted by the Department of CSE-ETECH.`,
+  body: `Our primary goal is to empower students to enhance their technical prowess with Next-Generation Technology. At NIC, we offer a platform for students to integrate their skills across various domains of Engineering and Technology based on the Artificial Intelligence. Our club conducts a wide array of events and activities that emphasize the significance of technical knowledge and highlight current trends. These include workshops, seminars, certification drives, knowledge-sharing sessions, and symposiums. Join us on this exciting journey of learning, exploration, and teamwork. What are you waiting for? Embark on a path to excellence with NIC!`,
   photo: {
-    src: "/nicteampic.webp",
+    src: "/groupphotos.jpeg",
     alt: "Members of the Next Gen Intelligence Club with faculty",
-    width: 640,
-    height: 480,
+    width: 1040,
+    height: 780,
   },
   stats: [
     { value: "18.07.24", label: "Inaugurated" },

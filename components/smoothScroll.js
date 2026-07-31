@@ -25,6 +25,12 @@ const LINE_HEIGHT = 18;
 const PAGE_FACTOR = 0.92;
 /** Below this the glide has arrived and the loop can idle. */
 const SETTLE_PX = 0.2;
+/**
+ * How long a landed programmatic scroll keeps the page. Long enough to outlast
+ * the tail of the gesture that triggered it, short enough that a second,
+ * deliberate scroll still counts. See `autoUntil`.
+ */
+export const SETTLE_MS = 280;
 /** Keys the browser scrolls with — the only ones that should interrupt us. */
 const SCROLL_KEYS = new Set([
   "ArrowUp",
@@ -41,6 +47,16 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 const easeInOutQuint = (t) =>
   t < 0.5 ? 16 * t ** 5 : 1 - Math.pow(-2 * t + 2, 5) / 2;
+
+/**
+ * The curve for a slide push. Quint is right for a long anchor glide, where
+ * the flat start reads as the page taking a breath before it moves — but a
+ * push is over in 0.7s, and at that length the same flatness reads as a stall
+ * followed by a jump. Cubic is moving properly by a quarter of the way in and
+ * still lands soft, which is what "one gesture" is supposed to feel like.
+ */
+export const EASE_PUSH = (t) =>
+  t < 0.5 ? 4 * t ** 3 : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 function maxScroll() {
   return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
@@ -68,6 +84,17 @@ function create() {
   let frameRequest = 0;
   let lastFrameAt = 0;
   let tween = null;
+  /**
+   * How long after a tween lands the page still counts as ours.
+   *
+   * A wheel gesture is not one event, it is a burst — and a trackpad's burst
+   * outlives the 0.7s push it triggered. Without this, the tail of the flick
+   * that advanced one slide arrives on the next one already sitting at the top
+   * of its travel and advances that too, and a single gesture walks the
+   * visitor through the whole deck. The window doesn't block scrolling; it
+   * only tells the handoffs to stand down, so the tail merely scrolls.
+   */
+  let autoUntil = 0;
 
   const write = () => {
     window.scrollTo(0, current);
@@ -93,13 +120,14 @@ function create() {
     if (tween) {
       const t =
         tween.duration > 0 ? clamp((now - tween.at) / tween.duration, 0, 1) : 1;
-      current = tween.from + (tween.to - tween.from) * easeInOutQuint(t);
+      current = tween.from + (tween.to - tween.from) * tween.ease(t);
       target = current;
       write();
 
       if (t >= 1) {
-        const { onComplete } = tween;
+        const { onComplete, settle } = tween;
         tween = null;
+        autoUntil = now + settle;
         stop();
         onComplete?.();
         return;
@@ -129,6 +157,9 @@ function create() {
   /** Hands the scroll position back to the browser and the visitor. */
   const release = () => {
     tween = null;
+    // Taking over is a deliberate act, so any settle window still owed is
+    // spent on the spot — the visitor owns the page from here.
+    autoUntil = 0;
     stop();
     sync();
   };
@@ -145,7 +176,13 @@ function create() {
 
   const tweenTo = (
     to,
-    { duration = 1200, grace = 0, onComplete } = {},
+    {
+      duration = 1200,
+      grace = 0,
+      settle = 0,
+      ease = easeInOutQuint,
+      onComplete,
+    } = {},
   ) => {
     const from = window.scrollY;
     const destination = clamp(to, 0, maxScroll());
@@ -161,6 +198,8 @@ function create() {
       at: performance.now(),
       duration,
       grace,
+      settle,
+      ease,
       onComplete,
     };
     run();
@@ -257,6 +296,10 @@ function create() {
     event.preventDefault();
     tweenTo(destination.getBoundingClientRect().top + window.scrollY, {
       duration: 1100,
+      // An anchor lands the visitor at the top of a slide's travel, which is
+      // exactly where a handoff waits to fire. Without a beat afterwards the
+      // slide they asked for advances out from under them.
+      settle: SETTLE_MS,
     });
     // Keep the section linkable without letting the browser jump us there.
     window.history.replaceState(null, "", `#${id}`);
@@ -283,7 +326,7 @@ function create() {
     },
     tweenTo,
     cancelTween,
-    isTweening: () => Boolean(tween),
+    isTweening: () => Boolean(tween) || performance.now() < autoUntil,
   };
 }
 
@@ -312,9 +355,10 @@ export function cancelSmoothScroll() {
 
 /**
  * True while a programmatic scroll owns the page — an anchor from the navbar,
- * or a slide still being handed over. Anything that would start a scroll of its
- * own has to stand down until it lands, or the two replace each other mid-flight
- * and the visitor ends up somewhere neither of them was aiming for.
+ * or a slide still being handed over, plus the short settle window after it
+ * lands. Anything that would start a scroll of its own has to stand down until
+ * then, or the two replace each other mid-flight and the visitor ends up
+ * somewhere neither of them was aiming for.
  */
 export function isAutoScrolling() {
   return controller()?.isTweening() ?? false;
