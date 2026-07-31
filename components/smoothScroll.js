@@ -283,6 +283,7 @@ function create() {
     },
     tweenTo,
     cancelTween,
+    isTweening: () => Boolean(tween),
   };
 }
 
@@ -307,4 +308,14 @@ export function smoothScrollTo(y, options) {
 /** Drops an in-flight programmatic scroll — used when a visitor takes over. */
 export function cancelSmoothScroll() {
   controller()?.cancelTween();
+}
+
+/**
+ * True while a programmatic scroll owns the page — an anchor from the navbar,
+ * or a slide still being handed over. Anything that would start a scroll of its
+ * own has to stand down until it lands, or the two replace each other mid-flight
+ * and the visitor ends up somewhere neither of them was aiming for.
+ */
+export function isAutoScrolling() {
+  return controller()?.isTweening() ?? false;
 }

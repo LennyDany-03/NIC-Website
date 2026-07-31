@@ -10,26 +10,36 @@ import {
   useTransform,
 } from "framer-motion";
 import FrameCanvas from "../FrameCanvas";
+import Slide, {
+  SLIDE_COMPLETE_AT,
+  SLIDE_REARM_MARGIN,
+  SLIDE_TRIGGER_AT,
+} from "../Slide";
 import useSlideHandoff from "../useSlideHandoff";
-import { block, rise, riseTransition, viewport } from "../motionPresets";
+import { rise, riseTransition } from "../motionPresets";
 import { DEPARTMENT, MEET_US, VISION_MISSION } from "./content";
 
 /**
- * The push is tracked off its own runway element rather than a fraction of the
- * section, because unlike the badge slide this section has no fixed height —
- * the copy decides it. A fraction would drift with the word count and the
- * canvas would stop matching the rate the crew section rises at, which is the
- * one thing the illusion cannot survive. Anchoring to a viewport-tall runway
- * keeps the push exactly one viewport whatever the articles measure.
+ * Three slides of copy over one continuous flythrough. Each article is a screen
+ * tall and rides in normal flow above the pinned city, so advancing one is
+ * nothing more exotic than scrolling it off the top — but that scroll is played
+ * as a single gesture rather than left to be inched through, which is what makes
+ * them read as a deck instead of one long page that happens to have headings.
+ *
+ * The last slide is the exception: it has no push of its own, because what
+ * leaves next is the whole section, city included, shoved off by the crew.
+ *
+ * That final push is tracked off its own runway element rather than a fraction
+ * of the section, because unlike the badge slide this section has no fixed
+ * height — the copy decides it. A fraction would drift with the word count and
+ * the canvas would stop matching the rate the crew section rises at, which is
+ * the one thing the illusion cannot survive. Anchoring to a viewport-tall
+ * runway keeps the push exactly one viewport whatever the articles measure.
  *
  * `["start end", "start start"]` reads as: 0 when the runway's top touches the
  * bottom of the screen, 1 when it reaches the top. Exactly one viewport.
  */
 const RUNWAY_OFFSET = ["start end", "start start"];
-/** Content has cleared; the deck is sitting on its transition card. */
-const COMPLETE_AT = 0.03;
-/** One more scroll — about two thirds of a wheel notch — advances it. */
-const TRIGGER_AT = 0.08;
 
 function Eyebrow({ children }) {
   return (
@@ -75,9 +85,9 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
   useSlideHandoff({
     sectionRef,
     progress: pushProgress,
-    completeAt: COMPLETE_AT,
-    triggerAt: TRIGGER_AT,
-    rearmMargin: 0.02,
+    completeAt: SLIDE_COMPLETE_AT,
+    triggerAt: SLIDE_TRIGGER_AT,
+    rearmMargin: SLIDE_REARM_MARGIN,
     enabled: autoPush,
   });
 
@@ -110,14 +120,7 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
       <div className="relative pull-up-viewport">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
           {/* ---------------------------------------------------- Meet us */}
-          <motion.article
-            id="meet-us"
-            className="flex min-h-viewport flex-col justify-center py-24 sm:py-32"
-            variants={block}
-            initial="hidden"
-            whileInView="shown"
-            viewport={viewport}
-          >
+          <Slide id="meet-us">
             <motion.div variants={rise} transition={riseTransition}>
               <Eyebrow>{MEET_US.eyebrow}</Eyebrow>
             </motion.div>
@@ -184,17 +187,10 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                 </figcaption>
               </motion.figure>
             </div>
-          </motion.article>
+          </Slide>
 
           {/* ------------------------------------------------- Department */}
-          <motion.article
-            id="department"
-            className="flex min-h-viewport flex-col justify-center border-t border-white/10 py-24 sm:py-32"
-            variants={block}
-            initial="hidden"
-            whileInView="shown"
-            viewport={viewport}
-          >
+          <Slide id="department" className="border-t border-white/10">
             <motion.div variants={rise} transition={riseTransition}>
               <Eyebrow>{DEPARTMENT.eyebrow}</Eyebrow>
             </motion.div>
@@ -244,16 +240,14 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                 </span>
               </span>
             </motion.div>
-          </motion.article>
+          </Slide>
 
           {/* -------------------------------------------- Vision & mission */}
-          <motion.article
+          {/* The section push below is this slide's handoff — see `advances`. */}
+          <Slide
             id="vision"
-            className="flex min-h-viewport flex-col justify-center border-t border-white/10 py-24 sm:py-32"
-            variants={block}
-            initial="hidden"
-            whileInView="shown"
-            viewport={viewport}
+            className="border-t border-white/10"
+            advances={false}
           >
             <motion.div variants={rise} transition={riseTransition}>
               <Eyebrow>{VISION_MISSION.eyebrow}</Eyebrow>
@@ -298,34 +292,7 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                 </motion.div>
               ))}
             </div>
-          </motion.article>
-        </div>
-
-        {/*
-         * Clearance. The copy needs a full viewport to scroll off before the
-         * panel starts moving, or the crew section arrives over a half-read
-         * paragraph. Rather than leave that viewport empty, the deck uses it to
-         * announce what it is about to cut to.
-         */}
-        <div className="flex h-viewport items-center justify-center px-6">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.6 }}
-            transition={riseTransition}
-          >
-            <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-zinc-500 sm:text-xs">
-              Next
-            </span>
-            <p className="mt-5 text-[clamp(1.75rem,6vw,3.5rem)] font-black uppercase leading-[0.95] tracking-tight text-white">
-              The <span className="text-nic-red">Masterminds</span>
-            </p>
-            <span
-              aria-hidden
-              className="mx-auto mt-7 block h-10 w-px bg-linear-to-b from-nic-red to-transparent"
-            />
-          </motion.div>
+          </Slide>
         </div>
 
         {/*
