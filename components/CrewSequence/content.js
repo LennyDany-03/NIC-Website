@@ -151,24 +151,49 @@ const intoRows = (members) => {
   return rows;
 };
 
-const board = ({ id, label, caption, prefix, members }) => {
+const board = ({ prefix, label, members, ...rest }) => {
   const seats = seat(prefix, label, members);
-  return { id, label, caption, members: seats, rows: intoRows(seats) };
+  return { ...rest, label, members: seats, rows: intoRows(seats) };
 };
 
+/*
+ * ---------------------------------------------------------------------------
+ * Each board announces itself on a screen of its own before its seats are
+ * dealt, the way the masterminds and the crew do — `eyebrow`, `lead`/`accent`
+ * and `body` are what that screen is built from, and `short` is the running
+ * label carried above each row of three afterwards.
+ *
+ * FILL ME IN — `body`
+ *
+ * Both paragraphs below describe the *office*, not this year's holders of it,
+ * and neither came from a source: they say what a board of that name is for,
+ * which is the one thing that stays true as the roster turns over. Rewrite them
+ * in NIC's own terms if the split of work is not quite this.
+ * ---------------------------------------------------------------------------
+ */
 export const BOARDS = [
   board({
     id: "senior-board",
-    label: "Senior Board of Directors",
-    caption: "Sets the agenda, and answers for it",
     prefix: "senior",
+    label: "Senior Board of Directors",
+    short: "Senior board",
+    eyebrow: "06 — The senior board",
+    lead: "Senior Board of",
+    accent: "Directors",
+    caption: "Sets the agenda, and answers for it",
+    body: `Nine seats, and the year is theirs to set. The senior board decides what NIC takes on, puts the club's name to it, and answers for how it turns out — the calendar, what it costs, and the standard everything is held to.`,
     members: SENIOR_MEMBERS,
   }),
   board({
     id: "joint-board",
-    label: "Joint Board of Directors",
-    caption: "Carries it out, and learns the job doing it",
     prefix: "joint",
+    label: "Joint Board of Directors",
+    short: "Joint board",
+    eyebrow: "07 — The joint board",
+    lead: "Joint Board of",
+    accent: "Directors",
+    caption: "Carries it out, and learns the job doing it",
+    body: `Nine more seats, one standing behind each of the nine above. The joint board is where the work actually gets carried out, and where the next senior board learns the job by doing it a year early.`,
     members: JOINT_MEMBERS,
   }),
 ];

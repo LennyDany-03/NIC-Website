@@ -79,6 +79,17 @@ const PORTRAIT_BOX = "h-[var(--portrait-h)] w-[calc(var(--portrait-h)*0.8)]";
 const SEAT_BAND = "mx-auto w-full max-w-[min(72rem,calc(108vh+4rem))]";
 const SEAT_GRID = `${SEAT_BAND} grid grid-cols-3 gap-3 sm:gap-5 lg:gap-8`;
 
+/**
+ * Two sizes of title screen, because the two kinds of title are two very
+ * different lengths. `THE / MASTERMINDS` is eleven characters at its widest and
+ * fills the measure at the larger size; `SENIOR BOARD OF / DIRECTORS` is
+ * fifteen, and set that big it would run straight out of the column — headings
+ * on these screens are one line each with a hard break, so nothing wraps them
+ * back in.
+ */
+const TITLE_XL = "text-[clamp(2.5rem,min(9.5vw,13vh),6.5rem)]";
+const TITLE_LG = "text-[clamp(1.75rem,min(6.5vw,9vh),4rem)]";
+
 function Eyebrow({ children, centered = false }) {
   return (
     <span
@@ -104,7 +115,7 @@ function Eyebrow({ children, centered = false }) {
  * beside. Stacked and centred, the vanishing point runs straight up through the
  * middle of the type and the shot finally has something to do with the words.
  */
-function TitleSlide({ id, content, className = "" }) {
+function TitleSlide({ id, content, className = "", size = TITLE_XL, note }) {
   return (
     <Slide id={id} className={className}>
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
@@ -114,7 +125,7 @@ function TitleSlide({ id, content, className = "" }) {
 
         <motion.h2
           variants={slideRise}
-          className={`mt-7 text-[clamp(2.5rem,min(9.5vw,13vh),6.5rem)] font-black uppercase leading-[0.85] tracking-tight text-white ${HEADING_SHADOW}`}
+          className={`mt-7 font-black uppercase leading-[0.85] tracking-tight text-white ${size} ${HEADING_SHADOW}`}
         >
           {content.lead}
           <br />
@@ -139,6 +150,17 @@ function TitleSlide({ id, content, className = "" }) {
         >
           {content.body}
         </motion.p>
+
+        {/* Plated like the running heads below it, for the same reason: this
+            line crosses whatever the corridor happens to be doing. */}
+        {note && (
+          <motion.span
+            variants={slideRise}
+            className={`mt-7 rounded-full bg-black/55 px-4 py-2 font-mono text-[9px] uppercase tracking-[0.28em] text-zinc-300 sm:text-[11px] sm:backdrop-blur-sm ${LABEL_SHADOW}`}
+          >
+            {note}
+          </motion.span>
+        )}
       </div>
     </Slide>
   );
@@ -361,45 +383,62 @@ function SeatCard({ member, onOpen }) {
  * slide of the same deck the faculty are in — one scroll, one row, at a size
  * where the face on the card is actually a face.
  *
- * The board's title rides on every one of its screens rather than being pinned
- * above them. A pinned bar has to stand in the flow at the top of the section,
- * and that costs the first row of each board its alignment: it would land a
- * bar's height lower than the two rows below it and take a scroll and a half to
- * advance where every other slide in the deck takes one. Carried inside the
- * slide the title is simply part of the sheet being dealt — it arrives with its
- * three cards, leaves with them, and says which of the three screens it is.
+ * So a board is four screens: it names itself on one, then deals its nine seats
+ * over three. Nothing about it is pinned. A sticky title bar has to stand in
+ * the flow at the top of the section, and that costs the first row of each
+ * board its alignment — it would land a bar's height lower than the two rows
+ * below it, and take a scroll and a half to advance where every other slide in
+ * the deck takes one. The running head above each row is part of the sheet
+ * being dealt instead: it arrives with its three cards and leaves with them.
  */
 function BoardDeck({ board, onOpen }) {
   const rows = board.rows;
 
   return (
     <section id={board.id} className="border-t border-white/10">
+      {/*
+       * The board announces itself before it deals anything. Nine faces are a
+       * roster; what makes them a board is the sentence about what the board is
+       * for, and that sentence has nowhere to live on a screen already carrying
+       * three cards at the largest size the screen can hold.
+       */}
+      <TitleSlide
+        id={`${board.id}-intro`}
+        content={board}
+        size={TITLE_LG}
+        note={`${board.caption} · ${board.members.length} seats`}
+      />
+
       {rows.map((row, index) => (
         <Slide key={row[0].id} id={`${board.id}-${index + 1}`}>
+          {/*
+           * A running head, not a title. The screen before this one said which
+           * board this is at full size, so all these three have to do is hold
+           * the thread — which board, which seats, and how much of it is left.
+           */}
+          {/*
+           * Both ends sit on a plate of their own. This line runs across the
+           * top third of the screen, which is where the corridor's left wall is
+           * blown out near-white by the light bars — and small red mono type
+           * with nothing behind it is the one thing on the page that cannot
+           * survive that. Legibility is bought locally here, the same way the
+           * body copy buys it with PANEL.
+           */}
           <motion.div
             variants={slideRise}
-            className={`flex flex-wrap items-end justify-between gap-x-8 gap-y-3 ${SEAT_BAND}`}
+            className={`flex flex-wrap items-center justify-between gap-x-8 gap-y-3 ${SEAT_BAND}`}
           >
-            <div>
-              <h3 className="text-[clamp(1.15rem,min(3.6vw,4.4vh),2rem)] font-black uppercase leading-none tracking-tight text-white">
-                {board.label}
-              </h3>
+            <span className="rounded-full bg-black/55 px-4 py-2 sm:backdrop-blur-sm">
+              <Eyebrow>
+                {board.short} · Seats {row[0].index}–{row[row.length - 1].index}
+              </Eyebrow>
+            </span>
 
-              <div className="mt-3 flex items-center gap-3">
-                <span aria-hidden className="h-px w-8 bg-nic-red" />
-                <span
-                  className={`font-mono text-[9px] uppercase tracking-[0.22em] text-zinc-300 sm:text-[11px] ${LABEL_SHADOW}`}
-                >
-                  {board.caption} · {board.members.length} members
-                </span>
-              </div>
-            </div>
-
-            {/* Which of the three screens this is. A row of three faces cannot
-                say that on its own, and it is the one thing a visitor needs in
-                order to know the board has more of itself below. */}
-            <div aria-hidden className="hidden items-center gap-3 sm:flex">
-              <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-500">
+            <div
+              aria-hidden
+              className="hidden items-center gap-3 rounded-full bg-black/55 px-4 py-2 sm:flex sm:backdrop-blur-sm"
+            >
+              <span className="font-mono text-[10px] tracking-[0.3em] text-zinc-400">
                 {String(index + 1).padStart(2, "0")} /{" "}
                 {String(rows.length).padStart(2, "0")}
               </span>
@@ -408,7 +447,7 @@ function BoardDeck({ board, onOpen }) {
                   <span
                     key={other[0].id}
                     className={`h-[3px] ${
-                      position === index ? "w-8 bg-nic-red" : "w-5 bg-white/20"
+                      position === index ? "w-8 bg-nic-red" : "w-5 bg-white/25"
                     }`}
                   />
                 ))}
@@ -416,7 +455,7 @@ function BoardDeck({ board, onOpen }) {
             </div>
           </motion.div>
 
-          <motion.div variants={seatRow} className={`mt-7 ${SEAT_GRID}`}>
+          <motion.div variants={seatRow} className={`mt-8 ${SEAT_GRID}`}>
             {row.map((member) => (
               <SeatCard key={member.id} member={member} onOpen={onOpen} />
             ))}
