@@ -17,6 +17,7 @@ import Slide, {
 } from "../Slide";
 import useSlideHandoff from "../useSlideHandoff";
 import { slideRise } from "../motionPresets";
+import { HEADING_SHADOW, LABEL_SHADOW, PANEL } from "../surfaces";
 import { DEPARTMENT, MEET_US, VISION_MISSION } from "./content";
 
 /**
@@ -42,32 +43,6 @@ import { DEPARTMENT, MEET_US, VISION_MISSION } from "./content";
 const RUNWAY_OFFSET = ["start end", "start start"];
 
 /**
- * Legibility is bought locally, not globally.
- *
- * Blacking out the entire frame to carry a column of body copy is what was
- * costing this section its backdrop: the city is the reason the slides are
- * pinned over a flythrough at all, and at a flat 70% it may as well have been
- * a still. So the scrim comes down to something that only takes the glare off
- * the neon, and every block of running text sits on a panel of its own that is
- * as dark as that text actually needs. The city stays lit in the gaps between
- * them, which is where it was always meant to be seen.
- *
- * Blur only from `sm` up, for the reason the vision cards already document:
- * re-blurring a large surface over a canvas that repaints every frame is the
- * one thing that drops frames on a phone. Opacity carries legibility there.
- */
-const PANEL =
-  "rounded-2xl border border-white/10 bg-black/70 p-6 sm:bg-black/55 sm:p-7 sm:backdrop-blur-md";
-
-/**
- * Headings sit on the city rather than on a panel — they are large enough and
- * heavy enough to, and putting them in a box would cost the section the one
- * moment where the type and the backdrop actually meet. A shadow is all they
- * need to survive a bright window passing behind them.
- */
-const HEADING_SHADOW = "drop-shadow-[0_2px_26px_rgba(0,0,0,0.92)]";
-
-/**
  * Type scales off the shorter of the two axes.
  *
  * These slides advance as a unit only while they fit on one screen, so height
@@ -82,7 +57,9 @@ const HEADING_MD = "text-[clamp(1.75rem,min(5vw,7vh),3.25rem)]";
 
 function Eyebrow({ children }) {
   return (
-    <span className="inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red drop-shadow-[0_1px_10px_rgba(0,0,0,0.9)] sm:text-xs">
+    <span
+      className={`inline-flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red sm:text-xs ${LABEL_SHADOW}`}
+    >
       <span aria-hidden className="h-px w-6 bg-nic-red/70" />
       {children}
     </span>
@@ -103,11 +80,13 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
 
   // Light on purpose: the smooth-scroll layer hands us a continuous position
   // and the canvas cross-fades between frames, so this only has to absorb the
-  // odd jolt. Anything heavier and the city lags a viewport behind the copy.
+  // odd jolt. Anything heavier and the city lags a viewport behind the copy —
+  // which is what it had started doing, since a push now covers that viewport
+  // in 0.7s and the old settings were still catching up after it landed.
   const smoothed = useSpring(scrollYProgress, {
-    stiffness: 300,
-    damping: 46,
-    mass: 0.3,
+    stiffness: 380,
+    damping: 42,
+    mass: 0.25,
     restDelta: 0.0005,
   });
   const playhead = prefersReducedMotion ? scrollYProgress : smoothed;
@@ -172,8 +151,15 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
              * and a slide that doesn't fit is one the deck stops advancing.
              * Side by side it also finally reads as a spread: the club stated
              * on the left, the club shown on the right.
+             *
+             * The photograph takes the larger share of it. It is a group of
+             * around thirty people, so every point of width is a face becoming
+             * recognisable; the copy beside it is a measure that was on the
+             * loose side anyway and reads better narrower. The text column is
+             * `minmax(0,...)` because a long unbroken word in a fractional
+             * column will otherwise widen it and quietly steal that width back.
              */}
-            <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-12">
               <div>
                 <motion.div variants={slideRise}>
                   <Eyebrow>{MEET_US.eyebrow}</Eyebrow>
@@ -188,15 +174,20 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                   <span className="text-nic-red">{MEET_US.accent}</span>
                 </motion.h2>
 
-                <motion.div variants={slideRise} className={`mt-8 ${PANEL}`}>
-                  <p className="text-[15px] leading-relaxed text-white sm:text-base sm:leading-[1.65]">
+                <motion.div variants={slideRise} className={`mt-6 ${PANEL}`}>
+                  <p className="text-[15px] leading-relaxed text-white sm:leading-[1.6]">
                     {MEET_US.standfirst}
                   </p>
                   <span
                     aria-hidden
-                    className="mt-5 block h-px w-10 bg-nic-red"
+                    className="mt-4 block h-px w-10 bg-nic-red"
                   />
-                  <p className="mt-5 text-sm leading-relaxed text-zinc-400 sm:leading-[1.7]">
+                  {/*
+                   * Sized off height as well, for the reason the headings are:
+                   * a narrower column is a taller one, and this is the block
+                   * that decides whether the slide still fits a short screen.
+                   */}
+                  <p className="mt-4 text-[clamp(0.8125rem,1.65vh,0.875rem)] leading-relaxed text-zinc-400 sm:leading-[1.7]">
                     {MEET_US.body}
                   </p>
                 </motion.div>
@@ -215,7 +206,7 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                     alt={MEET_US.photo.alt}
                     width={MEET_US.photo.width}
                     height={MEET_US.photo.height}
-                    sizes="(max-width: 1024px) 92vw, 46vw"
+                    sizes="(max-width: 1024px) 92vw, 56vw"
                     className="h-auto w-full object-cover"
                   />
                   <div
@@ -282,21 +273,15 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
                * a single measure this long is both a tiring read and tall
                * enough on its own to cost the slide its advance.
                */}
+              {/*
+               * No byline under this. Dr. Chitra is named in the copy already
+               * and gets a screen of her own in the masterminds deck below —
+               * a third billing on the same page was the one place the site
+               * repeated itself.
+               */}
               <p className="text-sm leading-relaxed text-zinc-300 sm:leading-[1.75] lg:columns-2 lg:gap-12">
                 {DEPARTMENT.body}
               </p>
-
-              <div className="mt-6 flex items-center gap-4 border-t border-white/10 pt-6">
-                <span className="block h-9 w-0.5 shrink-0 bg-nic-red" />
-                <span className="block">
-                  <span className="block text-base font-semibold text-white">
-                    {DEPARTMENT.lead.name}
-                  </span>
-                  <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.28em] text-zinc-500">
-                    {DEPARTMENT.lead.role}
-                  </span>
-                </span>
-              </div>
             </motion.div>
           </Slide>
 

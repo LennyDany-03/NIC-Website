@@ -18,11 +18,19 @@ export const DRONE_SEQUENCE = {
   prefix: "frame_",
   pad: 4,
   total: 240,
-  // 11.5 MB at full density, and it only ever plays behind a 70% scrim as a
-  // backdrop. The camera move is slow, so every second frame reads identically
-  // while halving what the visitor has to download.
-  step: 2,
-  mobileStep: 4,
+  // Every frame on a desktop connection: 12 MB, up from 6.
+  //
+  // Halving the sequence was affordable while it played behind a 70% scrim —
+  // at that depth the city was a texture and the stepping did not show. It
+  // shows now. The scrim is down to 40%, which is the whole point of the
+  // section, and the slide pushes cover a viewport of scroll in 0.7s, so the
+  // stretch of the sequence that moves fastest is also the one now most
+  // visible. Density is the only thing that fixes stepping at that speed.
+  //
+  // Phones stay thinned: they are the connection that can least afford this,
+  // they take no automatic pushes, and they scrub the sequence by hand.
+  step: 1,
+  mobileStep: 3,
 };
 
 /** The red neon corridor that carries the faculty and the two boards. */

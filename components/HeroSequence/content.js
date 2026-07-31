@@ -32,7 +32,6 @@ export const DEPARTMENT = {
     "Computer Science & Business Systems",
     "Cyber Security",
   ],
-  lead: { name: "Dr. P. Chitra", role: "Head of Department, CSE E-Tech" },
 };
 
 export const VISION_MISSION = {

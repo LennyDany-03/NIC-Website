@@ -11,8 +11,15 @@ import { useMotionValueEvent } from "framer-motion";
  */
 const DEFAULT_MIN_VISIBLE_WIDTH = 0.62;
 const MAX_DPR = 2;
-/** Below this the next frame contributes nothing worth a second drawImage. */
-const BLEND_EPSILON = 0.02;
+/**
+ * Below this the next frame contributes nothing worth a second drawImage.
+ *
+ * Deliberately small. The cost of the blend is one composite of a bitmap that
+ * is already decoded and already the right size, and the thing it buys back is
+ * the first and last sliver of every frame's travel — which, on a sequence
+ * scrubbed slowly through a long section, is most of what is on screen.
+ */
+const BLEND_EPSILON = 0.008;
 
 /** Returns the newest decoded frame at or before `index`, or null. */
 function readyFrame(frames, index) {

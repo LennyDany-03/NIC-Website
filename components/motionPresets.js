@@ -6,25 +6,16 @@
  * hence the empty `hidden` on the container presets.
  */
 
-export const rise = {
-  hidden: { opacity: 0, y: 28 },
-  shown: { opacity: 1, y: 0 },
-};
-
-export const block = {
-  hidden: {},
-  shown: { transition: { staggerChildren: 0.12 } },
-};
-
-export const riseTransition = { duration: 0.7, ease: [0.16, 1, 0.3, 1] };
-
-export const viewport = { once: true, amount: 0.2, margin: "0px 0px -80px 0px" };
-
 /**
- * Deck slides get their own pair, because a slide is not a block that scrolls
- * past once — it is dealt onto the screen, taken away, and dealt again if the
- * visitor scrolls back. So the reveal has to run in both directions (`once`
- * off), and it has to be over inside the push that carries the slide in:
+ * Everything here is a slide, because everything on the page now is. The pair
+ * that used to lead this file — a one-shot rise for a block that scrolls past
+ * once and is never seen again — went out with the last section that worked
+ * that way: the board rosters, dealt three cards to a screen now.
+ *
+ * A slide is not a block that scrolls past once — it is dealt onto the screen,
+ * taken away, and dealt again if the visitor scrolls back. So the reveal has to
+ * run in both directions (`once` off), and it has to be over inside the push
+ * that carries the slide in:
  * ~0.7s of travel with five staggered children behind it means the last line
  * lands while the next slide is already being asked for.
  *
@@ -51,33 +42,74 @@ export const slideBlock = {
 };
 
 /**
- * No bottom margin, unlike `viewport`: a slide is a screen tall, so trimming
- * the detection box only delays a reveal that should already have started.
+ * No trimmed detection box: a slide is a screen tall, so pulling its edges in
+ * only delays a reveal that should already have started.
  * The threshold is what matters — low enough that the slide is revealing while
  * it rises, high enough that it un-reveals once it is genuinely off the top.
  */
 export const slideViewport = { once: false, amount: 0.28 };
 
 /**
- * Portrait grids get their own pair: a tighter stagger, because nine cards at
- * the block cadence takes over a second to finish, and a little scale so the
- * cards feel like they are being dealt rather than sliding.
+ * A roster slide is one person: their portrait on the left, who they are on the
+ * right. The two halves arrive from the side they occupy, which is what makes
+ * the pair read as a frame being hung and its plate being set beside it rather
+ * than as two blocks fading up together.
+ *
+ * Same contract as `slideRise` — both directions, and over inside the push
+ * that carries the slide in.
  */
-export const gridBlock = {
+export const rowFromLeft = {
+  hidden: {
+    opacity: 0,
+    x: -44,
+    transition: { duration: 0.28, ease: [0.4, 0, 1, 1] },
+  },
+  shown: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.62, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+export const rowFromRight = {
+  hidden: {
+    opacity: 0,
+    x: 36,
+    transition: { duration: 0.28, ease: [0.4, 0, 1, 1] },
+  },
+  shown: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.62, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+/**
+ * Board seats are dealt three to a screen, and a screen is a slide — so they
+ * take the same two-way contract as `slideRise` rather than the one-shot reveal
+ * a grid that merely scrolls past once would use. A scroll back has to hand the
+ * three cards over again, whole, or the deck reads as broken behind you.
+ *
+ * The stagger lives on the row rather than on the slide because the row is what
+ * the cards are children of; a little scale on the way in is what makes three
+ * of them read as being dealt rather than as one block fading up.
+ */
+export const seatRow = {
   hidden: {},
-  shown: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } },
+  shown: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
 };
 
-export const card = {
-  hidden: { opacity: 0, y: 32, scale: 0.96 },
-  shown: { opacity: 1, y: 0, scale: 1 },
-};
-
-export const cardTransition = { duration: 0.65, ease: [0.16, 1, 0.3, 1] };
-
-/** A tall grid needs to start revealing earlier than a paragraph does. */
-export const gridViewport = {
-  once: true,
-  amount: 0.1,
-  margin: "0px 0px -60px 0px",
+export const seatCard = {
+  hidden: {
+    opacity: 0,
+    y: 28,
+    scale: 0.97,
+    transition: { duration: 0.26, ease: [0.4, 0, 1, 1] },
+  },
+  shown: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+  },
 };
