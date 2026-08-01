@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import ContactIcon from "../ContactIcons";
+import { ContactStrip } from "../ContactIcons";
 import CornerTicks from "../CornerTicks";
 import { GRAIN_PLATE } from "../surfaces";
 
@@ -20,113 +20,6 @@ import { GRAIN_PLATE } from "../surfaces";
  * dialog rendered inside it can never come out above the navbar no matter what
  * z-index it asks for. A portal is the only way out of that.
  */
-
-/**
- * The four channels, in a fixed order, whether or not this member has them.
- *
- * Fixed because the strip is the same object on every card: four tiles, always
- * the same four, in the same places. A row that only carried the handles that
- * happened to exist would be a different width and a different shape on every
- * seat, and on the seats with nothing at all it would vanish and take the whole
- * "contact" idea with it — which is the one thing on the card a visitor is
- * looking for. A channel with no handle stays in place, dimmed and dead, the
- * same way an unfilled seat stays in the roster.
- */
-const CHANNELS = [
-  { key: "email", label: "Email" },
-  { key: "instagram", label: "Instagram" },
-  { key: "linkedin", label: "LinkedIn" },
-  { key: "github", label: "GitHub" },
-];
-
-const hrefFor = (key, value) => (key === "email" ? `mailto:${value}` : value);
-
-const TILE =
-  "group/tile relative flex h-12 w-12 items-center justify-center border transition-all duration-300";
-
-/**
- * One channel. A live one is a link; a missing one is a `span`, because there
- * is nothing behind it to go to and a disabled anchor is still a tab stop.
- *
- * The dead tile is not hidden from assistive tech either — "Instagram, not
- * listed" is a real answer to the question the strip is there to answer, and a
- * silently absent icon is not.
- */
-function ContactTile({ channel, href }) {
-  const { key, label } = channel;
-
-  if (!href) {
-    return (
-      <li>
-        <span
-          title={`${label} — not listed`}
-          className={`${TILE} cursor-default border-white/6 bg-white/[0.015] text-zinc-700`}
-        >
-          <ContactIcon name={key} className="h-[18px] w-[18px]" />
-          <span className="sr-only">{label} — not listed</span>
-        </span>
-      </li>
-    );
-  }
-
-  return (
-    <li>
-      <a
-        href={href}
-        target={key === "email" ? undefined : "_blank"}
-        rel={key === "email" ? undefined : "noreferrer"}
-        title={label}
-        className={`${TILE} border-white/15 bg-white/[0.03] text-zinc-300 hover:-translate-y-0.5 hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:-translate-y-0.5 focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none`}
-      >
-        <ContactIcon name={key} className="h-[18px] w-[18px]" />
-        <span className="sr-only">{label}</span>
-        {/* The corner tick the rest of the section is built from, at tile
-            scale — one mark, on the corner the eye lands on. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute right-0 top-0 h-2 w-2 border-r border-t border-nic-red/0 transition-colors duration-300 group-hover/tile:border-nic-red"
-        />
-      </a>
-    </li>
-  );
-}
-
-/**
- * The contact strip. Only ever shown for a named seat — an open seat has nobody
- * to reach, and four dead tiles under "seat open" would be saying that twice.
- */
-function ContactStrip({ links }) {
-  const live = CHANNELS.filter(({ key }) => links?.[key]);
-
-  return (
-    <div className="relative mt-8 border-t border-white/8 pt-6">
-      <span className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.3em] text-nic-red">
-        <span aria-hidden className="h-px w-4 bg-nic-red/70" />
-        Contact
-      </span>
-
-      <ul className="mt-4 flex flex-wrap gap-2.5">
-        {CHANNELS.map((channel) => (
-          <ContactTile
-            key={channel.key}
-            channel={channel}
-            href={
-              links?.[channel.key]
-                ? hrefFor(channel.key, links[channel.key])
-                : null
-            }
-          />
-        ))}
-      </ul>
-
-      {live.length === 0 && (
-        <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-zinc-600">
-          Handles not listed yet
-        </p>
-      )}
-    </div>
-  );
-}
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -405,7 +298,22 @@ export default function MemberDialog({ member, onClose }) {
                     </dl>
                   )}
 
-                  {named && <ContactStrip links={person.links} />}
+                  {/*
+                   * Only ever shown for a named seat — an open seat has nobody
+                   * to reach, and four dead tiles under "seat open" would be
+                   * saying that twice.
+                   */}
+                  {named && (
+                    <div className="relative mt-8 border-t border-white/8 pt-6">
+                      <span className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.3em] text-nic-red">
+                        <span aria-hidden className="h-px w-4 bg-nic-red/70" />
+                        Contact
+                      </span>
+                      <div className="mt-4">
+                        <ContactStrip links={person.links} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -12,7 +12,12 @@ import {
 import CornerTicks from "../CornerTicks";
 import FrameCanvas from "../FrameCanvas";
 import MemberDialog from "../MemberDialog";
-import Slide from "../Slide";
+import Slide, {
+  SLIDE_COMPLETE_AT,
+  SLIDE_REARM_MARGIN,
+  SLIDE_TRIGGER_AT,
+} from "../Slide";
+import useSlideHandoff from "../useSlideHandoff";
 import {
   rowFromLeft,
   rowFromRight,
@@ -37,6 +42,17 @@ const SCRIM_OPEN = 0.3;
 const SCRIM_CLOSED = 0.48;
 /** 0 as the boards come over the horizon, 1 by the time they are half up. */
 const BOARDS_OFFSET = ["start end", "start center"];
+/**
+ * The runway the archive is pushed in over, measured the way the hero measures
+ * its own: 0 when the runway's top touches the bottom of the screen, 1 when it
+ * reaches the top — exactly one viewport, whatever the roster above it measures.
+ *
+ * It has to be an element rather than a fraction of the section for the reason
+ * the hero's does: the roster decides this section's height, so a fraction
+ * would drift every time a seat is added and the corridor would stop matching
+ * the rate the archive rises at.
+ */
+const RUNWAY_OFFSET = ["start end", "start start"];
 
 /**
  * The portrait is sized off screen height, not width.
@@ -544,7 +560,7 @@ function RowHead({ board, row, index, rows }) {
  * the deck takes one. The running head above each row is part of the sheet
  * being dealt instead: it arrives with its three cards and leaves with them.
  */
-function BoardDeck({ board, onOpen }) {
+function BoardDeck({ board, onOpen, isLast = false }) {
   const rows = board.rows;
 
   return (
@@ -563,7 +579,14 @@ function BoardDeck({ board, onOpen }) {
       />
 
       {rows.map((row, index) => (
-        <Slide key={row[0].id} id={`${board.id}-${index + 1}`}>
+        <Slide
+          key={row[0].id}
+          id={`${board.id}-${index + 1}`}
+          // The very last row of the very last board has no push of its own:
+          // what leaves next is the whole section, corridor included, shoved
+          // off by the archive. That handoff is owned below.
+          advances={!(isLast && index === rows.length - 1)}
+        >
           {/*
            * A running head, not a title. The screen before this one said which
            * board this is at full size, so all these three have to do is hold
@@ -582,9 +605,10 @@ function BoardDeck({ board, onOpen }) {
   );
 }
 
-export default function CrewSequence({ framesRef, ready }) {
+export default function CrewSequence({ framesRef, ready, autoPush = false }) {
   const sectionRef = useRef(null);
   const boardsRef = useRef(null);
+  const runwayRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
 
   /** The seat whose popup is up, or null. One at a time, for the whole page. */
@@ -624,6 +648,24 @@ export default function CrewSequence({ framesRef, ready }) {
     [SCRIM_OPEN, SCRIM_CLOSED],
   );
 
+  // The corridor keeps running as it is shoved off rather than freezing under
+  // the archive — the same call the city makes on its way out, for the same
+  // reason: a still corridor reads as a section that broke, not one that ended.
+  const { scrollYProgress: pushProgress } = useScroll({
+    target: runwayRef,
+    offset: RUNWAY_OFFSET,
+  });
+  const exitY = useTransform(pushProgress, [0, 1], ["0%", "-100%"]);
+
+  useSlideHandoff({
+    sectionRef,
+    progress: pushProgress,
+    completeAt: SLIDE_COMPLETE_AT,
+    triggerAt: SLIDE_TRIGGER_AT,
+    rearmMargin: SLIDE_REARM_MARGIN,
+    enabled: autoPush,
+  });
+
   return (
     <section
       ref={sectionRef}
@@ -636,7 +678,10 @@ export default function CrewSequence({ framesRef, ready }) {
       />
 
       {/* Pinned corridor — a hall of lit frames to hang the crew in. */}
-      <div className="sticky top-0 h-viewport w-full overflow-hidden">
+      <motion.div
+        className="sticky top-0 h-viewport w-full overflow-hidden will-change-transform"
+        style={prefersReducedMotion ? undefined : { y: exitY }}
+      >
         <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
         {/* Opens for the faculty, closes a little for the boards. */}
         <motion.div
@@ -661,7 +706,7 @@ export default function CrewSequence({ framesRef, ready }) {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.45)_100%)]"
         />
-      </div>
+      </motion.div>
 
       <div className="relative pull-up-viewport">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
@@ -687,11 +732,23 @@ export default function CrewSequence({ framesRef, ready }) {
 
           {/* -------------------------------------------------- The two boards */}
           <div ref={boardsRef}>
-            {BOARDS.map((board) => (
-              <BoardDeck key={board.id} board={board} onOpen={showSeat} />
+            {BOARDS.map((board, index) => (
+              <BoardDeck
+                key={board.id}
+                board={board}
+                onOpen={showSeat}
+                isLast={index === BOARDS.length - 1}
+              />
             ))}
           </div>
         </div>
+
+        {/*
+         * The runway. Exactly one viewport of empty page for the archive to be
+         * pushed in over — see RUNWAY_OFFSET for why it is an element rather
+         * than a number.
+         */}
+        <div ref={runwayRef} aria-hidden className="h-viewport" />
       </div>
 
       {/* Portalled to the body — see MemberDialog for why it cannot live here. */}

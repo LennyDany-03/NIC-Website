@@ -46,6 +46,26 @@ export const CORRIDOR_SEQUENCE = {
 };
 
 /**
+ * A swarm of photographs tumbling through the air, pulling back over its last
+ * third to the skyline they were taken over. It carries the visual archive, and
+ * the arc is the reason it does: the section opens inside the cluster and ends
+ * standing off it, which is the shape of looking through a year of pictures.
+ *
+ * 9.9 MB, and it is the fourth sequence to download rather than the first — by
+ * the time anyone reaches it the other three are long since decoded. Phones are
+ * thinned to a third, like the drone: it is the same kind of shot, all motion
+ * and no fine detail to lose.
+ */
+export const CITYSKYLINE_SEQUENCE = {
+  dir: "/frames/frames_cityskyline",
+  prefix: "frame_",
+  pad: 4,
+  total: 240,
+  step: 1,
+  mobileStep: 3,
+};
+
+/**
  * Decodes a frame sequence up front so a scroll scrub never has to wait on the
  * network. `step` / `mobileStep` thin the sequence out per breakpoint — phones
  * always take fewer frames than they could display while scrolling anyway.

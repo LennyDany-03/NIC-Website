@@ -53,15 +53,37 @@ html {
    */
   scroll-behavior: auto;
   /*
-   * The loader and the mobile sheet both pin the page with `overflow: hidden`,
-   * which takes the scrollbar away and shifts every centred thing sideways as
-   * it lifts. Reserving the gutter permanently keeps the badge from jumping at
-   * the exact moment the intro is handed over.
+   * No scrollbar on the page itself.
+   *
+   * The whole site is a deck: sections are dealt a screen at a time and a
+   * scroll is a gesture that advances one, so the bar down the right edge is
+   * measuring a length that means nothing to the visitor — and it is the one
+   * piece of browser chrome laid over artwork that runs to all four edges.
+   * The page still scrolls by every means it did: wheel, trackpad, touch,
+   * keyboard, and the anchors in the navbar.
+   *
+   * Only the root loses it. `scrollbar-width` is not inherited and the
+   * `::-webkit-scrollbar` rule is scoped, so a nested scroller — the mobile
+   * sheet, a long dialog — keeps the bar it actually needs.
+   */
+  scrollbar-width: none;
+  /*
+   * With no scrollbar there is no gutter to reserve, so this now costs
+   * nothing — but it is what keeps the badge from jumping sideways as the
+   * loader's `overflow: hidden` lifts on any engine that ignores the line
+   * above and draws one anyway.
    */
   scrollbar-gutter: stable;
   color-scheme: dark;
   background-color: #000000;
   -webkit-tap-highlight-color: transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 body {

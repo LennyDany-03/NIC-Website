@@ -43,3 +43,105 @@ export default function ContactIcon({ name, className = "h-4 w-4" }) {
     </svg>
   );
 }
+
+/**
+ * The four channels, in a fixed order, whether or not the subject has them.
+ *
+ * Fixed because the strip is the same object everywhere it appears: four tiles,
+ * always the same four, in the same places. A row that only carried the handles
+ * that happened to exist would be a different width and a different shape on
+ * every card, and where nothing was filled in at all it would vanish and take
+ * the whole "contact" idea with it — which is the one thing a visitor is
+ * looking for. A channel with no handle stays in place, dimmed and dead, the
+ * same way an unfilled seat stays in the roster.
+ *
+ * Shared by the member popup and the footer, so a person and the club itself
+ * are reached the same way.
+ */
+export const CHANNELS = [
+  { key: "email", label: "Email" },
+  { key: "instagram", label: "Instagram" },
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "github", label: "GitHub" },
+];
+
+export const hrefFor = (key, value) =>
+  key === "email" ? `mailto:${value}` : value;
+
+/**
+ * One channel. A live one is a link; a missing one is a `span`, because there
+ * is nothing behind it to go to and a disabled anchor is still a tab stop.
+ *
+ * The dead tile is not hidden from assistive tech either — "Instagram, not
+ * listed" is a real answer to the question the strip is there to answer, and a
+ * silently absent icon is not.
+ */
+export function ContactTile({ channel, href, size = "h-12 w-12" }) {
+  const { key, label } = channel;
+  const base = `group/tile relative flex ${size} items-center justify-center border transition-all duration-300`;
+
+  if (!href) {
+    return (
+      <li>
+        <span
+          title={`${label} — not listed`}
+          className={`${base} cursor-default border-white/6 bg-white/[0.015] text-zinc-700`}
+        >
+          <ContactIcon name={key} className="h-[18px] w-[18px]" />
+          <span className="sr-only">{label} — not listed</span>
+        </span>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <a
+        href={href}
+        target={key === "email" ? undefined : "_blank"}
+        rel={key === "email" ? undefined : "noreferrer"}
+        title={label}
+        className={`${base} border-white/15 bg-white/[0.03] text-zinc-300 hover:-translate-y-0.5 hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:-translate-y-0.5 focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none`}
+      >
+        <ContactIcon name={key} className="h-[18px] w-[18px]" />
+        <span className="sr-only">{label}</span>
+        {/* The corner tick the rest of the site is built from, at tile scale —
+            one mark, on the corner the eye lands on. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-0 top-0 h-2 w-2 border-r border-t border-nic-red/0 transition-colors duration-300 group-hover/tile:border-white"
+        />
+      </a>
+    </li>
+  );
+}
+
+/** The strip itself: all four channels, live ones lit, missing ones dead. */
+export function ContactStrip({ links, size }) {
+  const live = CHANNELS.filter(({ key }) => links?.[key]);
+
+  return (
+    <>
+      <ul className="flex flex-wrap gap-2.5">
+        {CHANNELS.map((channel) => (
+          <ContactTile
+            key={channel.key}
+            channel={channel}
+            size={size}
+            href={
+              links?.[channel.key]
+                ? hrefFor(channel.key, links[channel.key])
+                : null
+            }
+          />
+        ))}
+      </ul>
+
+      {live.length === 0 && (
+        <p className="mt-3 font-mono text-[9px] uppercase tracking-[0.22em] text-zinc-600">
+          Handles not listed yet
+        </p>
+      )}
+    </>
+  );
+}

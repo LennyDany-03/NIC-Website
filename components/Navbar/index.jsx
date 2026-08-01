@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   AnimatePresence,
   motion,
@@ -8,19 +10,17 @@ import {
   useScroll,
 } from "framer-motion";
 import NicLogoMark from "../NicLogoMark";
-
-const LINKS = [
-  { label: "Home", href: "#top" },
-  { label: "Meet Us", href: "#meet-us" },
-  { label: "Department", href: "#department" },
-  { label: "Vision", href: "#vision" },
-  { label: "Crew", href: "#masterminds" },
-];
+import SectionLink from "../SectionLink";
+import { JOIN_HREF, NAV_LINKS as LINKS } from "../siteLinks";
 
 export default function Navbar({ revealed = true }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { scrollY } = useScroll();
+  // The button is the loudest thing in the bar; on the page it leads to it
+  // should say so rather than offer the visitor a trip to where they already
+  // are.
+  const onJoinPage = usePathname() === JOIN_HREF;
 
   useMotionValueEvent(scrollY, "change", (value) => {
     setScrolled(value > 32);
@@ -68,7 +68,7 @@ export default function Navbar({ revealed = true }) {
         }`}
       >
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-5 sm:h-20 sm:px-8">
-          <a
+          <SectionLink
             href="#top"
             onClick={() => setMenuOpen(false)}
             className="group flex items-center gap-3"
@@ -77,28 +77,31 @@ export default function Navbar({ revealed = true }) {
             <span className="hidden text-sm font-black uppercase tracking-[0.28em] text-white sm:block">
               NIC
             </span>
-          </a>
+          </SectionLink>
 
           <ul className="hidden items-center gap-8 md:flex">
             {LINKS.map((link) => (
               <li key={link.href}>
-                <a
+                <SectionLink
                   href={link.href}
                   className="group relative block py-1 font-mono text-[11px] uppercase tracking-[0.24em] text-zinc-400 transition-colors hover:text-white"
                 >
                   {link.label}
                   <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-nic-red transition-all duration-300 group-hover:w-full" />
-                </a>
+                </SectionLink>
               </li>
             ))}
           </ul>
 
-          <a
-            href="#join"
-            className="hidden rounded-full border border-nic-red/60 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white transition-colors hover:bg-nic-red md:block"
+          <Link
+            href={JOIN_HREF}
+            aria-current={onJoinPage ? "page" : undefined}
+            className={`hidden rounded-full border border-nic-red/60 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.24em] text-white transition-colors md:block ${
+              onJoinPage ? "bg-nic-red" : "hover:bg-nic-red"
+            }`}
           >
             Join
-          </a>
+          </Link>
 
           <button
             type="button"
@@ -141,7 +144,7 @@ export default function Navbar({ revealed = true }) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.06 * index, duration: 0.3 }}
                 >
-                  <a
+                  <SectionLink
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
                     className="flex items-center justify-between border-b border-white/5 py-4 font-mono text-xs uppercase tracking-[0.3em] text-zinc-300 active:text-white"
@@ -150,7 +153,7 @@ export default function Navbar({ revealed = true }) {
                     <span className="text-nic-red">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                  </a>
+                  </SectionLink>
                 </motion.li>
               ))}
               <motion.li
@@ -159,13 +162,14 @@ export default function Navbar({ revealed = true }) {
                 transition={{ delay: 0.36, duration: 0.3 }}
                 className="pt-5"
               >
-                <a
-                  href="#join"
+                <Link
+                  href={JOIN_HREF}
+                  aria-current={onJoinPage ? "page" : undefined}
                   onClick={() => setMenuOpen(false)}
                   className="block rounded-full bg-nic-red py-3 text-center font-mono text-xs uppercase tracking-[0.3em] text-white"
                 >
                   Join the club
-                </a>
+                </Link>
               </motion.li>
             </ul>
           </motion.div>

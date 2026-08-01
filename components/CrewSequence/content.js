@@ -190,6 +190,8 @@ const JOINT_MEMBERS = [
      */
     links: {
       email: "lennydany3@gmail.com",
+      instagram: "https://instagram.com/lennydany3",
+      linkedin: "https://www.linkedin.com/in/lenny-dany-derek-d/",
       github: "https://github.com/LennyDany-03",
     },
   },
