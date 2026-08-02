@@ -20,28 +20,34 @@ export const ARCHIVE = {
  * ---------------------------------------------------------------------------
  * The ledger
  *
- * The first two entries were read straight off the event slides in the
- * photographs in /public/gallery — the workshop titles, the dates, the times
- * and the resource persons are all legible on the screen behind the room. That
- * is the whole source: nothing here is remembered, inferred or filled in for
- * effect. Check them against the club's own records before this ships, and in
- * particular check the one thing that was *not* on the slide, flagged below.
+ * The list itself — titles, dates and what kind of thing each one was — came
+ * from the club's own event register. Two of them carry more than that: the LLM
+ * and Design workshops were also photographed, and their times, sessions and
+ * resource persons were read straight off the slides legible on the screen in
+ * /public/gallery. That is why those two have a note and the rest do not. A
+ * note is optional here on purpose: an entry with nothing filed against it
+ * renders as title and date alone rather than padded out with an invented
+ * sentence, and the day someone can say what a workshop actually covered, the
+ * line goes in and the row grows.
  *
- * The remaining slots are empty on purpose. An invented achievement on a
- * club's own site is worse than an empty shelf, so a slot with no `title`
- * renders as an open entry — dimmed, numbered, honest — the way an unfilled
- * board seat does.
+ * A slot with no `title` renders as an open entry — dimmed, numbered, honest —
+ * the way an unfilled board seat does. There are none at the moment; leave the
+ * shape in place for the next one that has a date before it has a write-up.
  *
  * ---------------------------------------------------------------------------
  * FILL ME IN — the rest
  *
  * Newest first. `year` is whatever reads as the date — "2025", "Aug 2024",
- * "18.07.24"; it is set in mono in a tag, so short is better. `note` is one or
- * two sentences: what it was, and what came of it.
+ * "21–22 Aug 2024"; it is set in mono in a tag, so short is better, and the
+ * dash between two days is an en dash. `kind` is the one-word register the
+ * event belongs to — Workshop, Symposium, Hackathon, Event — and it sits
+ * beside the date. `note` is optional: one or two sentences on what it was and
+ * what came of it, and nothing at all if nobody can say.
  *
  *   {
  *     id: "ai-workshop-25",
  *     year: "2025",
+ *     kind: "Workshop",
  *     title: "Two-day workshop on applied machine learning",
  *     note: `What it was, who turned up, and what the club got out of running
  *            it. One or two sentences — this is a ledger, not a write-up.`,
@@ -53,26 +59,88 @@ export const ARCHIVE = {
  */
 const ENTRIES = [
   {
+    id: "prompt-odyssey-2026",
+    year: "16 Jul 2026",
+    kind: "Event",
+    title: "Prompt Odyssey",
+    note: `Run for AI Appreciation Day.`,
+  },
+  {
+    id: "hackforge-2026",
+    year: "9–10 Mar 2026",
+    kind: "Hackathon",
+    title: "Hackforge'26",
+  },
+  {
+    id: "power-bi-2026",
+    year: "9 Feb 2026",
+    kind: "Workshop",
+    title: "Power BI Workshop",
+  },
+  {
+    id: "genesis-2025",
+    year: "25–26 Sep 2025",
+    kind: "Symposium",
+    title: "Genesis'25",
+  },
+  {
+    id: "prompt-engineering-2025",
+    year: "19 Sep 2025",
+    kind: "Workshop",
+    title: "Prompt Engineering Workshop",
+  },
+  {
+    id: "uiux-workshop-2025",
+    year: "22 Aug 2025",
+    kind: "Workshop",
+    title: "UI/UX Design Workshop",
+  },
+  {
+    id: "ai-solutions-2025",
+    year: "5–6 Mar 2025",
+    kind: "Workshop",
+    title: "AI Powered Solutions for the Future: Scalable and Smart Systems",
+  },
+  {
+    id: "hackforge-2025",
+    year: "12–13 Feb 2025",
+    kind: "Hackathon",
+    title: "Hackforge'25",
+  },
+  {
+    /*
+     * Filed as 4 October *2025* in the register it was copied from, which
+     * cannot be right: Genesis'25 ran 25–26 September 2025, so the '24 edition
+     * would be sitting a week after the '25 one. Every other name on this list
+     * carries the year it was held, so 2024 is what is set here — the one date
+     * on the page that was worked out rather than read, and the one worth
+     * confirming against the report before this ships.
+     */
+    id: "genesis-2024",
+    year: "4 Oct 2024",
+    kind: "Symposium",
+    title: "Genesis'24",
+  },
+  {
+    id: "rust-blockchain-2024",
+    year: "21–22 Aug 2024",
+    kind: "Workshop",
+    title: "Role of the Rust Language in Blockchain Development",
+  },
+  {
     id: "design-workshop-2024",
     year: "20 Aug 2024",
+    kind: "Workshop",
     title: "Design Workshop",
-    /*
-     * The slide reads "Tuesday 20 August" and gives no year. 20 August 2024
-     * was a Tuesday and the workshop three screens earlier in the same camera
-     * roll is dated August 2024, so 2024 is what is set here — but it is the
-     * one date on this page that was worked out rather than read, so it is the
-     * one worth confirming.
-     */
     note: `A full-day design workshop, 9am to 3pm, run with Skill Dragon — Mr. Prathyaksh, its founder and CEO, and Mr. A. G. Karthik, its CTO and co-founder. Faculty coordinator: Dr. J. Arun Nehru.`,
   },
   {
     id: "llm-workshop-2024",
     year: "14 Aug 2024",
+    kind: "Workshop",
     title: "Workshop on Large Language Models and their Applications",
     note: `A full-day workshop, 9am to 3pm, in three sessions: an introduction to large language models, their use cases, and an interactive session with the participants. Resource person: Mr. Muthukumar Arumugam, CEO and Managing Director of IN22 Labs, Chennai.`,
   },
-  { id: "entry-3", year: "", title: "", note: "" },
-  { id: "entry-4", year: "", title: "", note: "" },
 ];
 
 /*
