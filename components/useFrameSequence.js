@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import useIsMobile, { matchesMobile } from "./useIsMobile";
 
 /** The hexagon badge build — plays through the scroll intro. */
 export const HEXAGON_SEQUENCE = {
@@ -67,8 +68,9 @@ export const CITYSKYLINE_SEQUENCE = {
 
 /**
  * Decodes a frame sequence up front so a scroll scrub never has to wait on the
- * network. `step` / `mobileStep` thin the sequence out per breakpoint — phones
- * always take fewer frames than they could display while scrolling anyway.
+ * network. `step` / `mobileStep` thin the sequence out per breakpoint — a
+ * narrow desktop window takes fewer frames than it could display while
+ * scrolling anyway.
  *
  * Frames land in a ref rather than state on purpose: the canvas reads them 60x
  * a second and must not drag React through a render each time.
@@ -76,6 +78,11 @@ export const CITYSKYLINE_SEQUENCE = {
  * Pass `enabled: false` to hold a sequence back — the drone frames only start
  * downloading once the intro has handed over, so they never compete with the
  * frames the visitor is actually looking at.
+ *
+ * Nothing at all is fetched on the phone layout, which paints a single still
+ * per section instead — see SceneStill. That is the largest thing this site
+ * does for a phone: four sequences it was never going to play properly, about
+ * 15 MB of them after thinning, not asked for.
  */
 export default function useFrameSequence(sequence, enabled = true) {
   const { dir, prefix, pad, total, step: desktopStep = 1, mobileStep = 2 } =
@@ -84,9 +91,25 @@ export default function useFrameSequence(sequence, enabled = true) {
   const framesRef = useRef([]);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
+  // Only so a window dragged back over the breakpoint fetches what it now needs.
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!enabled) return undefined;
+
+    /*
+     * Reported as arrived rather than merely never arriving. The loading screen
+     * watches the first of these to know when to lift, and a sequence that
+     * silently stays at zero would hold it there until its own bail-out timer
+     * fired — eight seconds of progress bar on the one device that skipped the
+     * download.
+     */
+    if (matchesMobile()) {
+      framesRef.current = [];
+      setProgress(1);
+      setReady(true);
+      return undefined;
+    }
 
     const step = window.matchMedia("(max-width: 767px)").matches
       ? mobileStep
@@ -133,7 +156,7 @@ export default function useFrameSequence(sequence, enabled = true) {
         img.onerror = null;
       });
     };
-  }, [dir, prefix, pad, total, desktopStep, mobileStep, enabled]);
+  }, [dir, prefix, pad, total, desktopStep, mobileStep, enabled, isMobile]);
 
   return { framesRef, progress, ready };
 }

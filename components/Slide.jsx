@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll } from "framer-motion";
+import useIsMobile from "./useIsMobile";
 import useSlideHandoff from "./useSlideHandoff";
 import { slideBlock, slideViewport } from "./motionPresets";
 
@@ -70,6 +71,13 @@ function useFitsViewport(ref) {
  * The handoff is only armed while the slide genuinely fits the screen. Where it
  * doesn't — a short window, a phone turned sideways — one scroll would blow past
  * copy that was never shown, so the slide goes back to being plain scrolled.
+ *
+ * None of that exists on a phone. There is no deck to advance — touch never got
+ * the automatic push in the first place — so a slide there is simply a section,
+ * and the one thing the deck's geometry costs it is the padding: a screen-tall
+ * minimum on a screen of copy that is half that tall is half a screen of black
+ * between every heading and the last one. It sizes to its content instead, with
+ * enough of a floor that a title screen still arrives alone.
  */
 export default function Slide({
   id,
@@ -79,6 +87,7 @@ export default function Slide({
 }) {
   const ref = useRef(null);
   const fits = useFitsViewport(ref);
+  const isMobile = useIsMobile();
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -93,22 +102,26 @@ export default function Slide({
     rearmMargin: SLIDE_REARM_MARGIN,
     // Nothing of the slide may be left on screen: the next one needs all of it.
     land: "top",
-    enabled: advances && fits,
+    enabled: advances && fits && !isMobile,
   });
 
   return (
     <motion.article
       id={id}
       ref={ref}
-      // The desktop padding is deliberately tighter than the phone's, and on
-      // desktop it is measured in screen height rather than fixed rems.
-      // Centred content never sees this padding — it only decides the height at
+      // On desktop the padding is measured in screen height rather than fixed
+      // rems. Centred content never sees it — it only decides the height at
       // which a slide stops fitting the screen, and a slide that doesn't fit is
       // one the deck has to either crop or give up on. Scaling it with `vh`
       // spends the room where it exists and takes it back on the 768px-tall
       // laptops where a fixed 5rem top and bottom was the whole margin between
       // a slide that advances and one that has to be scrolled by hand.
-      className={`flex min-h-viewport flex-col justify-center py-24 sm:py-32 lg:py-[clamp(3.5rem,7.5vh,5rem)] ${className}`}
+      //
+      // The phone's floor is 70svh rather than a full screen: enough that a
+      // title screen still arrives as a screen — two of them run back to back
+      // where a board announces itself — and short enough that a slide of
+      // three lines is three lines rather than a screen with a gap under it.
+      className={`flex flex-col justify-center py-20 max-lg:min-h-[70svh] lg:min-h-viewport lg:py-[clamp(3.5rem,7.5vh,5rem)] ${className}`}
       variants={slideBlock}
       initial="hidden"
       whileInView="shown"

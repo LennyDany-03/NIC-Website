@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import Image from "next/image";
 import {
   motion,
   useReducedMotion,
@@ -9,6 +10,8 @@ import {
   useTransform,
 } from "framer-motion";
 import FrameCanvas from "../FrameCanvas";
+import NicLogoMark, { VIEW_BOX, hexPoints } from "../NicLogoMark";
+import useIsMobile from "../useIsMobile";
 import useSlideHandoff from "../useSlideHandoff";
 
 /**
@@ -44,9 +47,63 @@ const REARM_MARGIN = 0.08;
  */
 const FRAME_SETTLED = 0.995;
 
+/**
+ * The still the phone's opening screen is lit by: the badge's own sequence a
+ * few dozen frames in, where the circuit board has drawn itself and the embers
+ * are up but the logo has not yet resolved. The badge on top of it is the vector
+ * one — the same geometry the loading screen draws, and the reason this screen
+ * does not need two hundred and forty frames to arrive at a logo.
+ */
+const PHONE_STILL = "/frames/frames_hexagon/frame_0030.webp";
+/** 0 at the top of the opening screen, 1 once it has been scrolled away. */
+const PHONE_OFFSET = ["start start", "end start"];
+
+/**
+ * Two hexagons turning slowly against each other behind the badge.
+ *
+ * The desktop opens by scrubbing a logo into existence, and the phone cannot —
+ * so what it borrows instead is the *motion* that made that worth watching,
+ * drawn in the badge's own geometry rather than downloaded as pixels. Slow
+ * enough to read as a mechanism rather than as a spinner.
+ */
+function HexHalo({ still }) {
+  const rings = [
+    { radius: 78, width: 0.5, opacity: 0.3, seconds: 54, from: 0, to: 360 },
+    { radius: 96, width: 0.4, opacity: 0.16, seconds: 84, from: 360, to: 0 },
+  ];
+
+  return (
+    <>
+      {rings.map((ring) => (
+        <motion.svg
+          key={ring.radius}
+          aria-hidden
+          viewBox={VIEW_BOX}
+          className="pointer-events-none absolute inset-[-46%]"
+          animate={still ? undefined : { rotate: [ring.from, ring.to] }}
+          transition={{
+            duration: ring.seconds,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        >
+          <polygon
+            points={hexPoints(ring.radius)}
+            fill="none"
+            stroke="#ed0a14"
+            strokeOpacity={ring.opacity}
+            strokeWidth={ring.width}
+          />
+        </motion.svg>
+      ))}
+    </>
+  );
+}
+
 export default function NicLogoIntro({ framesRef, ready, started }) {
   const sectionRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -85,8 +142,24 @@ export default function NicLogoIntro({ framesRef, ready, started }) {
     rearmMargin: REARM_MARGIN,
     holdMs: HOLD_MS,
     canFire: badgeIsBuilt,
-    enabled: started,
+    enabled: started && !isMobile,
   });
+
+  /*
+   * The phone's opening screen is one viewport rather than three, so it has no
+   * scrub to spend a scroll on — what it has instead is a departure. The badge
+   * lifts and dims as the screen is scrolled away and the still behind it holds
+   * for a moment longer, which is the same parallax every section below uses
+   * and the first thing the visitor sees the page do.
+   */
+  const { scrollYProgress: phoneProgress } = useScroll({
+    target: sectionRef,
+    offset: PHONE_OFFSET,
+  });
+  const phoneY = useTransform(phoneProgress, [0, 1], [0, -110]);
+  const phoneOpacity = useTransform(phoneProgress, [0, 0.6], [1, 0]);
+  const phoneStillY = useTransform(phoneProgress, [0, 1], ["0%", "12%"]);
+  const phoneCue = useTransform(phoneProgress, [0, 0.15], [1, 0]);
 
   const hintOpacity = useTransform(scrollYProgress, [0, 0.05], [1, 0]);
   // Fully landed by 0.46 — two frames' worth of scroll before the badge
@@ -117,6 +190,142 @@ export default function NicLogoIntro({ framesRef, ready, started }) {
    * the hero the instant the last of the badge clears the top edge.
    */
   const exitY = useTransform(scrollYProgress, [HANDOFF_AT, 1], ["0%", "-100%"]);
+
+  if (isMobile) {
+    const rise = (delay) => ({
+      initial: { opacity: 0, y: 18 },
+      animate: started ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 },
+      transition: {
+        duration: prefersReducedMotion ? 0 : 0.7,
+        delay: prefersReducedMotion || !started ? 0 : delay,
+        ease: [0.16, 1, 0.3, 1],
+      },
+    });
+
+    return (
+      <section
+        id="top"
+        ref={sectionRef}
+        className="relative flex h-viewport w-full flex-col items-center justify-center overflow-hidden bg-black px-6"
+      >
+        {/* ------------------------------------------------- the scene */}
+        <motion.div
+          aria-hidden
+          className="absolute -inset-y-[8%] inset-x-0"
+          style={prefersReducedMotion ? undefined : { y: phoneStillY }}
+        >
+          <Image
+            src={PHONE_STILL}
+            alt=""
+            fill
+            sizes="100vw"
+            preload
+            className="scale-110 object-cover opacity-80"
+          />
+        </motion.div>
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_42%,rgba(237,10,20,0.22)_0%,rgba(237,10,20,0)_70%)]"
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.9)_0%,rgba(0,0,0,0.25)_28%,rgba(0,0,0,0.55)_72%,rgba(0,0,0,0.96)_100%)]"
+        />
+
+        {/* ------------------------------------------------- the badge */}
+        <motion.div
+          className="relative flex flex-col items-center pt-6 text-center sm:pt-10"
+          style={
+            prefersReducedMotion
+              ? undefined
+              : { y: phoneY, opacity: phoneOpacity }
+          }
+        >
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, scale: 0.86 }}
+            animate={
+              started ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.86 }
+            }
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.9,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[22rem] w-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(237,10,20,0.34) 0%, rgba(237,10,20,0) 65%)",
+              }}
+            />
+            <HexHalo still={prefersReducedMotion} />
+            {/*
+             * Sized off the shorter axis, like every display size on this site
+             * — a phone turned sideways is 390px tall, and a badge measured in
+             * `vw` there is a badge taller than the screen it is centred in.
+             */}
+            <NicLogoMark className="relative h-auto w-[clamp(5rem,min(34vw,22vh),11rem)] drop-shadow-[0_18px_50px_rgba(0,0,0,0.9)]" />
+          </motion.div>
+
+          <motion.h1
+            {...rise(0.18)}
+            className="mt-[clamp(1.5rem,4vh,2.5rem)] text-[clamp(1.5rem,min(8.5vw,7vh),3.25rem)] font-black uppercase leading-[0.92] tracking-[0.06em] text-white drop-shadow-[0_2px_26px_rgba(0,0,0,0.92)]"
+          >
+            Nextgen
+            <br />
+            <span className="text-nic-red">Intelligence</span>
+            <br />
+            Club
+          </motion.h1>
+
+          <motion.span
+            {...rise(0.26)}
+            aria-hidden
+            className="mt-[clamp(1rem,3.5vh,1.75rem)] block h-px w-14 bg-nic-red shadow-[0_0_18px_2px_rgba(237,10,20,0.6)]"
+          />
+
+          <motion.p
+            {...rise(0.32)}
+            className="mt-[clamp(0.875rem,3vh,1.5rem)] max-w-[19rem] font-mono text-[10px] uppercase leading-relaxed tracking-[0.3em] text-zinc-400"
+          >
+            Build · Break · Bring it back smarter
+          </motion.p>
+        </motion.div>
+
+        {/* --------------------------------------------------- the cue */}
+        {/*
+         * Gone on a screen under 560px tall — a phone held sideways. There the
+         * badge and the club's name already fill the screen and the cue lands
+         * on top of the tagline; and "scroll" is not news to someone holding a
+         * page that is plainly taller than the window.
+         */}
+        <motion.div
+          className="absolute inset-x-0 bottom-10 flex flex-col items-center gap-3 [@media(max-height:560px)]:hidden"
+          style={prefersReducedMotion ? undefined : { opacity: phoneCue }}
+        >
+          <motion.span
+            {...rise(0.42)}
+            className="font-mono text-[9px] uppercase tracking-[0.42em] text-zinc-500"
+          >
+            Scroll to enter
+          </motion.span>
+          <motion.span
+            aria-hidden
+            className="block h-10 w-px bg-gradient-to-b from-nic-red to-transparent"
+            animate={
+              prefersReducedMotion
+                ? undefined
+                : { scaleY: [0.35, 1, 0.35], opacity: [0.35, 1, 0.35] }
+            }
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            style={{ originY: 0 }}
+          />
+        </motion.div>
+      </section>
+    );
+  }
 
   return (
     <section id="top" ref={sectionRef} className="relative h-[300vh] bg-black">

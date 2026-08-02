@@ -10,11 +10,13 @@ import {
   useTransform,
 } from "framer-motion";
 import FrameCanvas from "../FrameCanvas";
+import SceneStill from "../SceneStill";
 import Slide, {
   SLIDE_COMPLETE_AT,
   SLIDE_REARM_MARGIN,
   SLIDE_TRIGGER_AT,
 } from "../Slide";
+import useIsMobile from "../useIsMobile";
 import useSlideHandoff from "../useSlideHandoff";
 import { slideRise } from "../motionPresets";
 import { HEADING_SHADOW, LABEL_SHADOW, PANEL } from "../surfaces";
@@ -55,6 +57,15 @@ const HEADING_XL = "text-[clamp(2.5rem,min(8vw,11vh),5.5rem)]";
 const HEADING_LG = "text-[clamp(2rem,min(6.5vw,9vh),4.25rem)]";
 const HEADING_MD = "text-[clamp(1.75rem,min(5vw,7vh),3.25rem)]";
 
+/**
+ * The frame the phone stands this section on: the drone shot deep in the canyon,
+ * where the river runs straight down the middle of the composition. It is the
+ * one part of the flythrough that survives a portrait crop with its subject
+ * intact — the buildings fall away to either side and lose nothing that was
+ * carrying the shot.
+ */
+const PHONE_STILL = "/frames/frames_drone/frame_0060.webp";
+
 function Eyebrow({ children }) {
   return (
     <span
@@ -70,6 +81,7 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
   const sectionRef = useRef(null);
   const runwayRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   // Progress starts the instant the section finishes sliding over the intro,
   // so the city flies past for exactly as long as there is copy to read.
@@ -107,13 +119,17 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
     completeAt: SLIDE_COMPLETE_AT,
     triggerAt: SLIDE_TRIGGER_AT,
     rearmMargin: SLIDE_REARM_MARGIN,
-    enabled: autoPush,
+    enabled: autoPush && !isMobile,
   });
 
   return (
     <section
       ref={sectionRef}
-      className="relative z-10 pull-up-viewport bg-black"
+      // The pull-up is the deck's: it drags this section a screen up so it
+      // wipes over the pinned badge. On a phone there is no pinned badge to
+      // wipe over — the opening screen is one screen and ends — so the section
+      // simply follows it.
+      className="relative z-10 bg-black lg:pull-up-viewport"
     >
       {/* The NIC-red leading edge that wipes upward over the locked badge. */}
       <div
@@ -121,27 +137,35 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
         className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-nic-red to-transparent shadow-[0_0_28px_6px_rgba(237,10,20,0.55)]"
       />
 
-      {/* Pinned city flythrough — the backdrop for everything below. */}
-      <motion.div
-        className="sticky top-0 h-viewport w-full overflow-hidden will-change-transform"
-        style={prefersReducedMotion ? undefined : { y: exitY }}
-      >
-        <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
-        {/* Takes the glare off the neon. The panels do the rest — see PANEL. */}
-        <div aria-hidden className="absolute inset-0 bg-black/40" />
-        {/* Frames the shot and hides the letterbox seam on tall screens. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.5)_100%)]"
+      {isMobile ? (
+        <SceneStill
+          still={PHONE_STILL}
+          opacity={0.62}
+          glow="radial-gradient(85% 50% at 50% 30%, rgba(237,10,20,0.18) 0%, rgba(237,10,20,0) 72%)"
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.75),rgba(0,0,0,0))]"
-        />
-      </motion.div>
+      ) : (
+        /* Pinned city flythrough — the backdrop for everything below. */
+        <motion.div
+          className="sticky top-0 h-viewport w-full overflow-hidden will-change-transform"
+          style={prefersReducedMotion ? undefined : { y: exitY }}
+        >
+          <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
+          {/* Takes the glare off the neon. The panels do the rest — see PANEL. */}
+          <div aria-hidden className="absolute inset-0 bg-black/40" />
+          {/* Frames the shot and hides the letterbox seam on tall screens. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.5)_100%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.75),rgba(0,0,0,0))]"
+          />
+        </motion.div>
+      )}
 
       {/* Copy rides over the pinned backdrop. */}
-      <div className="relative pull-up-viewport">
+      <div className="relative lg:pull-up-viewport">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
           {/* ---------------------------------------------------- Meet us */}
           <Slide id="meet-us">
@@ -336,8 +360,11 @@ export default function HeroSequence({ framesRef, ready, autoPush = false }) {
         {/*
          * The runway. Exactly one viewport, and the push is measured across it
          * — see RUNWAY_OFFSET above for why it is an element and not a number.
+         *
+         * Desktop only: it is empty page for the section below to be pushed in
+         * over, and where nothing is pushed it is just a blank screen.
          */}
-        <div ref={runwayRef} aria-hidden className="h-viewport" />
+        {!isMobile && <div ref={runwayRef} aria-hidden className="h-viewport" />}
       </div>
     </section>
   );

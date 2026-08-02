@@ -16,7 +16,7 @@ import { JOIN_HREF, NAV_LINKS as LINKS } from "../siteLinks";
 export default function Navbar({ revealed = true }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { scrollY } = useScroll();
+  const { scrollY, scrollYProgress } = useScroll();
   // The button is the loudest thing in the bar; on the page it leads to it
   // should say so rather than offer the visitor a trip to where they already
   // are.
@@ -123,6 +123,24 @@ export default function Navbar({ revealed = true }) {
             />
           </button>
         </nav>
+
+        {/*
+         * How far down the page you are, on the layout that has no other way of
+         * telling you.
+         *
+         * The desktop deliberately has no scrollbar — it is a deck, and a bar
+         * measuring a length in pixels says nothing about a page dealt a screen
+         * at a time. The phone layout is not a deck: it is twenty-odd screens
+         * of ordinary scrolling with the browser's own bar suppressed by the
+         * same rule, and that combination is genuinely disorienting. So the bar
+         * comes back here, as a hairline in the club's red, on exactly the
+         * layout that needs it.
+         */}
+        <motion.span
+          aria-hidden
+          className="block h-px origin-left bg-nic-red/80 lg:hidden"
+          style={{ scaleX: scrollYProgress }}
+        />
       </div>
 
       <AnimatePresence>

@@ -180,11 +180,14 @@ export default function MemberDialog({ member, onClose }) {
               className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[3px] bg-nic-red shadow-[0_0_20px_3px_rgba(237,10,20,0.5)]"
             />
 
+            {/* 44px on touch, which is the smallest thing a thumb should be
+                asked to hit — and on a phone this button is floating over a
+                photograph rather than sitting in a margin. */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-3 top-3 z-30 flex h-10 w-10 items-center justify-center border border-white/20 bg-black/80 text-zinc-300 backdrop-blur-sm transition-colors hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none sm:right-4 sm:top-4"
+              className="absolute right-3 top-3 z-30 flex h-11 w-11 items-center justify-center border border-white/20 bg-black/80 text-zinc-300 backdrop-blur-sm transition-colors hover:border-nic-red hover:bg-nic-red hover:text-white focus-visible:border-nic-red focus-visible:bg-nic-red focus-visible:text-white focus-visible:outline-none sm:right-4 sm:top-4 lg:h-10 lg:w-10"
             >
               <span aria-hidden className="text-xl leading-none">
                 ×
@@ -192,7 +195,14 @@ export default function MemberDialog({ member, onClose }) {
             </button>
 
             <div className="overflow-y-auto overscroll-contain">
-              <div className="grid sm:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+              {/*
+               * Side by side only where there is room for two columns of it.
+               * The split used to start at `sm`, which put a portrait and a
+               * write-up into 640px — a 260px column of photograph beside a
+               * measure of about thirty characters, on every tablet and every
+               * phone held sideways. Stacked is the right shape for both.
+               */}
+              <div className="grid lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
                 {/* ------------------------------------------- the portrait */}
                 {/*
                  * On a phone the panel is a sheet, and every pixel the portrait
@@ -201,8 +211,8 @@ export default function MemberDialog({ member, onClose }) {
                  * not, so it gets barely more than a header band.
                  */}
                 <figure
-                  className={`relative w-full border-b border-white/10 bg-zinc-900 sm:h-auto sm:min-h-[22rem] sm:border-b-0 sm:border-r ${
-                    person.photo ? "h-[30svh]" : "h-[16svh]"
+                  className={`relative w-full border-b border-white/10 bg-zinc-900 lg:h-auto lg:min-h-[22rem] lg:border-b-0 lg:border-r ${
+                    person.photo ? "h-[32svh] sm:h-[36svh]" : "h-[16svh]"
                   }`}
                 >
                   <span
@@ -216,7 +226,7 @@ export default function MemberDialog({ member, onClose }) {
                       src={person.photo}
                       alt={`${person.name}, ${person.role}`}
                       fill
-                      sizes="(max-width: 640px) 100vw, 320px"
+                      sizes="(max-width: 1024px) 100vw, 320px"
                       className="object-cover object-top"
                     />
                   ) : (
@@ -242,7 +252,7 @@ export default function MemberDialog({ member, onClose }) {
                  * card reads as that card getting bigger rather than as a
                  * different object arriving over it.
                  */}
-                <div className="relative p-6 pr-16 sm:p-8 sm:pr-20">
+                <div className="relative p-6 sm:p-7 lg:p-8 lg:pr-20">
                   <span className="relative flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-nic-red">
                     <span aria-hidden className="h-px w-5 bg-nic-red/70" />
                     {person.board}
