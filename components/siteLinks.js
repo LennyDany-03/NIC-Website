@@ -25,6 +25,26 @@ export const NAV_LINKS = [
 export const JOIN_HREF = "/join";
 
 /**
+ * Genesis'26 — the symposium, and the second route that is not a section of the
+ * front page.
+ *
+ * Stated here with the rest of the table of contents for the same reason
+ * `JOIN_HREF` is: the bar and the mobile sheet both link it, and a route that
+ * moves should move in one edit. Deliberately not in `NAV_LINKS` — that list is
+ * the front page's sections, and every href in it is a hash the smooth-scroll
+ * layer expects to intercept.
+ *
+ * Unlike the entries above, this one is expected to be temporary. It is an
+ * event with a date on it, and the day Genesis'26 has been run the honest thing
+ * is to file it in the archive's ledger and take the button out of the bar —
+ * at which point this constant and `components/Genesis26/` go together.
+ */
+export const GENESIS_HREF = "/genesis-26";
+
+/** What the button says. Set here so the bar and the sheet cannot disagree. */
+export const GENESIS_LABEL = "Genesis '26";
+
+/**
  * Where the club itself is reached, as opposed to any one member of it.
  *
  * ---------------------------------------------------------------------------
