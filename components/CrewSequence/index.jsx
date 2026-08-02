@@ -28,7 +28,7 @@ import {
   slideRise,
 } from "../motionPresets";
 import { GRAIN_PLATE, HEADING_SHADOW, LABEL_SHADOW, PANEL } from "../surfaces";
-import { BOARDS, CREW, MASTERMINDS } from "./content";
+import { BOARDS, CREW, DEFAULT_TERM, MASTERMINDS, TERMS } from "./content";
 
 /**
  * How dark the corridor is allowed to be.
@@ -157,6 +157,84 @@ function Eyebrow({ children, centered = false }) {
 }
 
 /**
+ * Which board is on the table — the one sitting now, or the one before it.
+ *
+ * A switch rather than a second pair of sections. Both boards hold the same
+ * seats a year apart, so the alternative was six more screens of roster below
+ * the six already here: the same content at four times the scroll, and a
+ * visitor who wanted to compare the two would have to remember the first
+ * halfway down the second.
+ *
+ * It is drawn as tabs because that is what it is. The active one is marked with
+ * the same 2px red rule the seat cards carry along their foot — the section's
+ * one mark for "this is the live thing" — and the plate under both is the same
+ * black the running heads stand on, for the same reason: this line crosses
+ * whatever the corridor happens to be doing behind it.
+ *
+ * Two buttons and `aria-pressed`, not a radio group. Nothing here is being
+ * submitted; each of these is a button that changes what is on the screen, and
+ * `pressed` is exactly what a toggle in that state is.
+ */
+function TermSwitch({ term, onChange, label = null, compact = false }) {
+  return (
+    <div
+      className={`inline-flex items-stretch border border-white/12 bg-black/80 sm:bg-black/70 sm:backdrop-blur-sm ${
+        compact ? "" : "shadow-[0_18px_50px_-24px_rgba(0,0,0,0.95)]"
+      }`}
+    >
+      {label && (
+        <span
+          className={`flex items-center gap-3 pl-4 font-mono uppercase tracking-[0.24em] text-zinc-500 sm:pl-5 ${
+            compact ? "text-[10px]" : "text-[10px] sm:text-[11px]"
+          } ${LABEL_SHADOW}`}
+        >
+          {label}
+          <span aria-hidden className="h-4 w-px bg-white/20" />
+        </span>
+      )}
+
+      <div role="group" aria-label="Which board is shown" className="flex">
+        {TERMS.map((option) => {
+          const active = option.id === term;
+
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={active}
+              // The visible word alone is "Current", which says nothing at all
+              // read out on its own — and it is the label most likely to be
+              // rewritten as a bare pair of years once those are known.
+              aria-label={`Show the ${option.tab.toLowerCase()} board`}
+              onClick={() => onChange(option.id)}
+              className={`relative font-mono font-medium uppercase tracking-[0.2em] transition-colors duration-300 focus-visible:outline-none ${
+                compact
+                  ? "px-3.5 py-2.5 text-[10px] sm:px-4 sm:text-[12px]"
+                  : "px-4 py-3 text-[11px] sm:px-5 sm:py-3.5 sm:text-[13px]"
+              } ${
+                active
+                  ? `text-white ${LABEL_SHADOW}`
+                  : "text-zinc-500 hover:text-zinc-200 focus-visible:text-white"
+              }`}
+            >
+              {option.tab}
+              <span
+                aria-hidden
+                className={`absolute inset-x-0 bottom-0 h-[2px] transition-all duration-300 ${
+                  active
+                    ? "bg-nic-red shadow-[0_0_10px_1px_rgba(237,10,20,0.7)]"
+                    : "bg-white/10"
+                }`}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
  * A title screen: the name of the section stacked in the middle of the corridor
  * with what it means set underneath it.
  *
@@ -167,7 +245,14 @@ function Eyebrow({ children, centered = false }) {
  * beside. Stacked and centred, the vanishing point runs straight up through the
  * middle of the type and the shot finally has something to do with the words.
  */
-function TitleSlide({ id, content, className = "", size = TITLE_XL, note }) {
+function TitleSlide({
+  id,
+  content,
+  className = "",
+  size = TITLE_XL,
+  note,
+  control,
+}) {
   return (
     <Slide id={id} className={className}>
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
@@ -212,6 +297,16 @@ function TitleSlide({ id, content, className = "", size = TITLE_XL, note }) {
           >
             {note}
           </motion.span>
+        )}
+
+        {/* The one thing on a title screen that can be pointed at. It goes last
+            because it is the only part of the screen that is not the title —
+            everything above it says which board this is, and this says which of
+            them is standing in it. */}
+        {control && (
+          <motion.div variants={slideRise} className="mt-8">
+            {control}
+          </motion.div>
         )}
       </div>
     </Slide>
@@ -527,7 +622,7 @@ function SeatCard({ member, onOpen, standalone = false }) {
  * the seat range stays red. One accent on the line is legible on red; two are a
  * line that vibrates.
  */
-function RowHead({ board, row, index, rows }) {
+function RowHead({ board, row, index, rows, term, onTermChange }) {
   const first = row[0].index;
   const last = row[row.length - 1].index;
 
@@ -571,6 +666,18 @@ function RowHead({ board, row, index, rows }) {
         className="h-px min-w-0 flex-1 bg-linear-to-r from-white/30 via-white/12 to-white/30"
       />
 
+      {/*
+       * The switch, carried on every row rather than left behind on the screen
+       * that introduced the board. A visitor three rows into the senior board
+       * who wants last year's is otherwise being asked to scroll back up a
+       * deck that advances a screen at a time to find the control — and the
+       * whole point of dealing the roster in rows is that scrolling back is the
+       * expensive direction.
+       */}
+      <div className="shrink-0">
+        <TermSwitch term={term} onChange={onTermChange} compact />
+      </div>
+
       {/* The counter says the same thing the rule's position says, and it is
           the first thing to go when there is no width for it. */}
       <div
@@ -613,33 +720,49 @@ function RowHead({ board, row, index, rows }) {
  * slate stacks rather than truncating — "SENIOR BOAR…" was the phone's version
  * of a label that fits on a laptop.
  */
-function BoardHead({ board }) {
+function BoardHead({ board, roster, term, onTermChange }) {
   return (
-    <motion.div variants={slideRise} className="flex items-center gap-4">
-      <div className="flex min-w-0 items-stretch">
+    <>
+      <motion.div variants={slideRise} className="flex items-center gap-4">
+        <div className="flex min-w-0 items-stretch">
+          <span
+            aria-hidden
+            className="w-1 shrink-0 bg-nic-red shadow-[0_0_18px_3px_rgba(237,10,20,0.6)]"
+          />
+          <span className="flex min-w-0 flex-col gap-1 bg-black/80 py-2.5 pl-4 pr-5">
+            <span
+              className={`font-mono text-[12px] font-medium uppercase tracking-[0.22em] text-white ${LABEL_SHADOW}`}
+            >
+              {board.short}
+            </span>
+            <span
+              className={`font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff3b3b] ${LABEL_SHADOW}`}
+            >
+              {roster.members.length} seats · tap a card
+            </span>
+          </span>
+        </div>
+
         <span
           aria-hidden
-          className="w-1 shrink-0 bg-nic-red shadow-[0_0_18px_3px_rgba(237,10,20,0.6)]"
+          className="h-px min-w-0 flex-1 bg-linear-to-r from-white/30 via-white/12 to-transparent"
         />
-        <span className="flex min-w-0 flex-col gap-1 bg-black/80 py-2.5 pl-4 pr-5">
-          <span
-            className={`font-mono text-[12px] font-medium uppercase tracking-[0.22em] text-white ${LABEL_SHADOW}`}
-          >
-            {board.short}
-          </span>
-          <span
-            className={`font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff3b3b] ${LABEL_SHADOW}`}
-          >
-            {board.members.length} seats · tap a card
-          </span>
-        </span>
-      </div>
+      </motion.div>
 
-      <span
-        aria-hidden
-        className="h-px min-w-0 flex-1 bg-linear-to-r from-white/30 via-white/12 to-transparent"
-      />
-    </motion.div>
+      {/*
+       * On its own line, where the rail keeps it beside the counter. A phone
+       * cannot hold a two-line slate and a two-tab switch abreast without one
+       * of them truncating, and the one that must not truncate is the control.
+       */}
+      <motion.div variants={slideRise} className="mt-4">
+        <TermSwitch
+          term={term}
+          onChange={onTermChange}
+          label="Showing"
+          compact
+        />
+      </motion.div>
+    </>
   );
 }
 
@@ -660,8 +783,24 @@ function BoardHead({ board }) {
  * the deck takes one. The running head above each row is part of the sheet
  * being dealt instead: it arrives with its three cards and leaves with them.
  */
-function BoardDeck({ board, onOpen, isLast = false, isMobile = false }) {
-  const rows = board.rows;
+function BoardDeck({
+  board,
+  term,
+  onTermChange,
+  onOpen,
+  isLast = false,
+  isMobile = false,
+}) {
+  /*
+   * The roster standing in the board's seats right now — one of two, and the
+   * only thing on this screen the switch changes. Both terms deal to the same
+   * number of rows, which is what keeps the switch from being a scroll jump:
+   * the deck is the same length either way, and the slide being read stays the
+   * slide being read. A term that deals a row more or fewer than the other
+   * would move the ground under whoever pressed it.
+   */
+  const roster = board.terms[term];
+  const rows = roster.rows;
 
   return (
     <section id={board.id} className="border-t border-white/10">
@@ -673,17 +812,33 @@ function BoardDeck({ board, onOpen, isLast = false, isMobile = false }) {
        */}
       <TitleSlide
         id={`${board.id}-intro`}
-        content={board}
+        content={{ ...board, body: roster.body }}
         size={TITLE_LG}
-        note={`${board.caption} · ${board.members.length} seats`}
+        note={`${board.caption} · ${roster.members.length} seats`}
+        control={
+          <TermSwitch term={term} onChange={onTermChange} label="Showing" />
+        }
       />
 
       {isMobile ? (
         <Slide id={`${board.id}-roster`} advances={false}>
-          <BoardHead board={board} />
+          <BoardHead
+            board={board}
+            roster={roster}
+            term={term}
+            onTermChange={onTermChange}
+          />
 
-          <div className={`mt-7 ${PHONE_SEAT_GRID}`}>
-            {board.members.map((member) => (
+          {/*
+           * Keyed by term, so switching deals the whole grid again rather than
+           * swapping eighteen faces in place. It is safe to remount here and
+           * nowhere else: a card in this grid arrives on its own `whileInView`
+           * rather than being dealt by a row, so a fresh one animates itself in
+           * — a row's cards inherit their cue from a slide that has already
+           * given it, and would mount holding the hidden variant forever.
+           */}
+          <div key={term} className={`mt-7 ${PHONE_SEAT_GRID}`}>
+            {roster.members.map((member) => (
               <SeatCard
                 key={member.id}
                 member={member}
@@ -708,8 +863,17 @@ function BoardDeck({ board, onOpen, isLast = false, isMobile = false }) {
              * board this is at full size, so all these three have to do is hold
              * the thread — which board, which seats, and how much of it is left.
              */}
-            <RowHead board={board} row={row} index={index} rows={rows} />
+            <RowHead
+              board={board}
+              row={row}
+              index={index}
+              rows={rows}
+              term={term}
+              onTermChange={onTermChange}
+            />
 
+            {/* Not keyed by term — see the phone's grid above for why this one
+                swaps its cards in place instead of being dealt again. */}
             <motion.div variants={seatRow} className={`mt-8 ${SEAT_GRID}`}>
               {row.map((member) => (
                 <SeatCard key={member.id} member={member} onOpen={onOpen} />
@@ -733,6 +897,17 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
   const [openSeat, setOpenSeat] = useState(null);
   const showSeat = useCallback((member) => setOpenSeat(member), []);
   const closeSeat = useCallback(() => setOpenSeat(null), []);
+
+  /*
+   * Which year's roster both boards are showing.
+   *
+   * One piece of state for the pair of them, not one each. A senior board from
+   * this year standing above a joint board from last is not a thing that ever
+   * existed — the boards are elected together and the joint board is defined by
+   * the senior board it stands behind — so a visitor who asks for the board
+   * before this one is asking for both halves of it.
+   */
+  const [term, setTerm] = useState(DEFAULT_TERM);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -869,6 +1044,8 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
               <BoardDeck
                 key={board.id}
                 board={board}
+                term={term}
+                onTermChange={setTerm}
                 onOpen={showSeat}
                 isLast={index === BOARDS.length - 1}
                 isMobile={isMobile}

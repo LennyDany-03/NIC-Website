@@ -257,9 +257,26 @@ export default function MemberDialog({ member, onClose }) {
                  * different object arriving over it.
                  */}
                 <div className="relative p-6 sm:p-7 lg:p-8 lg:pr-20">
-                  <span className="relative flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.3em] text-nic-red">
+                  {/*
+                   * Wrapping, because this line is now two things: which board
+                   * the seat belongs to and — for a board that has already
+                   * handed over — which of them. "Senior Board of Directors"
+                   * is most of the measure on a phone before the second one is
+                   * set beside it.
+                   *
+                   * The board sitting now carries no mark at all. A popup that
+                   * had to say "current" would be answering a question nobody
+                   * asked; the mark is only worth the room when what is being
+                   * looked at is not what a visitor would assume.
+                   */}
+                  <span className="relative flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[10px] uppercase tracking-[0.3em] text-nic-red">
                     <span aria-hidden className="h-px w-5 bg-nic-red/70" />
                     {person.board}
+                    {person.term && (
+                      <span className="border border-white/15 px-2 py-1 tracking-[0.22em] text-zinc-400">
+                        {person.term}
+                      </span>
+                    )}
                   </span>
 
                   <h2
