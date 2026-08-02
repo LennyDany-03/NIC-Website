@@ -26,6 +26,7 @@ export const MASTERMINDS = {
       name: "Dr. P. Chitra",
       role: "Head of Department, CSE E-Tech",
       photo: "/crew/Chitra-HOD.jpg",
+      crop: "50% 33%",
       bio: `Oversees the CSE E-Tech department, under which NIC was founded and to which it still answers. The club's remit — what it may run, who it may bring in, how far it may go — is set at this desk.`,
     },
     {
@@ -34,6 +35,7 @@ export const MASTERMINDS = {
       name: "Dr. Meenakshi",
       role: "Faculty Coordinator",
       photo: "/crew/Meenakshi-NIC.webp",
+      crop: "49% 35%",
       bio: `Faculty coordinator to the club: the standing link between a student board that changes every year and a department that does not. Approvals, rooms, and the difference between an idea and a scheduled event.`,
     },
     {
@@ -42,6 +44,7 @@ export const MASTERMINDS = {
       name: "Dr. Arun Nehru",
       role: "Faculty Coordinator",
       photo: "/crew/ArunNehru-NIC.webp",
+      crop: "50% 33%",
       bio: `Faculty coordinator to the club, working alongside the technical side of what NIC builds — the workshops, the certification drives, and the symposiums the club puts its name to.`,
     },
   ],
@@ -68,6 +71,39 @@ export const CREW = {
  * and next/image is fetching these over HTTP. A seat with `photo: null` falls
  * back to a numbered plate rather than breaking the row, so a missing portrait
  * can land later without anything else changing.
+ *
+ * ---------------------------------------------------------------------------
+ * `crop` — where the face is
+ *
+ * Named `crop` rather than `focus` because `focus` is already taken, a few lines
+ * below, by the thing a person works on — and a popup that prints "Focus: 47%
+ * 52%" under someone's bio is what happens when two fields share a name.
+ *
+ * These are seventeen snapshots taken by seventeen people: a hedge, a stairwell,
+ * a motorbike at night. The subject is wherever they happened to be standing —
+ * half way down a wall of leaves in one, a third of the way down in another —
+ * and every place the site shows a portrait crops it to a different shape: a 4:5
+ * card in the roster, a band across the top of the popup on a phone, a tall
+ * plate beside the copy on a desktop. One rule cannot serve all of that. `top`
+ * was the rule, and on the photographs where the subject stands low it framed
+ * the wall behind them and cut the head off at the bottom edge.
+ *
+ * So each photograph carries its own answer: the face's position in that frame,
+ * as a percentage of its width and height, passed straight to `object-position`.
+ * Because `object-fit: cover` maps the image's x% to the container's x%, a face
+ * measured at "47% 52%" lands 52% of the way down whatever it is cropped into
+ * and cannot be cropped out of it.
+ *
+ * To measure one: open the file, read off where the middle of the face sits
+ * (left-to-right first, then top-to-bottom), and write it down. Check it against
+ * the phone's popup rather than a photo viewer — that is the widest, meanest
+ * crop on the site, and anything that survives it survives everywhere else. A
+ * photograph with no `crop` is simply centred.
+ *
+ * One warning: measure it off what the browser draws, not off the file. Several
+ * of these are phone photographs carrying an EXIF orientation flag — one is
+ * stored on its side — and the browser turns them upright before cropping them.
+ * ---------------------------------------------------------------------------
  *
  * ---------------------------------------------------------------------------
  * FILL ME IN — `bio`
@@ -103,6 +139,7 @@ const SENIOR_MEMBERS = [
     role: "President",
     name: "Athithya S A",
     photo: "/crew/board/athithya-sa.png",
+    crop: "43% 25%",
     bio: `The seat the year answers to. The president sets what NIC takes on, puts the club's name to it, and is the one asked afterwards how it went. Also holds Head of Design on this board.`,
     links: {},
   },
@@ -110,6 +147,7 @@ const SENIOR_MEMBERS = [
     role: "Vice-President",
     name: "D.D. Moheeth Kumar",
     photo: "/crew/board/moheeth-kumar-dd.jpeg",
+    crop: "46% 35%",
     bio: `Second chair, and the one that has to be able to take the first at no notice. The vice-president keeps the board's decisions moving between meetings and stands in wherever the president cannot be. Also holds Head of Logistics on this board.`,
     links: {},
   },
@@ -117,6 +155,7 @@ const SENIOR_MEMBERS = [
     role: "Secretary & Treasurer",
     name: "G. Mohammed Azam",
     photo: "/crew/board/mohammed-azam-g.jpg",
+    crop: "57% 29%",
     bio: `Both halves of the club's paperwork in one seat: the minutes, the members, the correspondence, and the money. What the club agreed to and what the club can afford are settled here.`,
     links: {},
   },
@@ -124,6 +163,7 @@ const SENIOR_MEMBERS = [
     role: "Head of Working Committee",
     name: "Vivin K.S",
     photo: "/crew/board/vivin-ks.jpeg",
+    crop: "51% 52%",
     bio: `Runs the committee that actually staffs an event — who is on the door, who is on the floor, and who is still there at the end putting the room back. The gap between a plan and a working day is this desk.`,
     links: {},
   },
@@ -131,6 +171,7 @@ const SENIOR_MEMBERS = [
     role: "Technical Head",
     name: "Dinesh P",
     photo: "/crew/board/dinesh-p.jpeg",
+    crop: "45% 31%",
     bio: `Owns everything of NIC's that runs on a machine — the site, the tooling, the workshops, and whatever has to work in front of a room on the day. The technical standard the club is held to is set here.`,
     links: {},
   },
@@ -138,6 +179,7 @@ const SENIOR_MEMBERS = [
     role: "Head of Design",
     name: "Athithya S A",
     photo: "/crew/board/athithya-sa.png",
+    crop: "43% 25%",
     bio: `Everything the club puts its name on has to look like the same club. Posters, decks, the stage, the site — the design head decides what NIC looks like and holds the line on it. Held alongside the presidency.`,
     links: {},
   },
@@ -152,6 +194,7 @@ const SENIOR_MEMBERS = [
     role: "Head of Outreach",
     name: "Neethu Jimmy Joy",
     photo: "/crew/board/neethu-jimmy-joy.png",
+    crop: "45% 50%",
     bio: `Everyone NIC has to talk to who is not already in it — other clubs, other departments, speakers, sponsors, and the students who have not heard of the club yet. Outreach is where a room gets filled.`,
     links: {},
   },
@@ -159,6 +202,7 @@ const SENIOR_MEMBERS = [
     role: "Head of Logistics",
     name: "D.D. Moheeth Kumar",
     photo: "/crew/board/moheeth-kumar-dd.jpeg",
+    crop: "46% 35%",
     bio: `The hall, the permissions, the chairs, the projector, the food, and the timing of all of it. Logistics is the reason an event exists as a place people can turn up to. Held alongside the vice-presidency.`,
     links: {},
   },
@@ -169,6 +213,7 @@ const JOINT_MEMBERS = [
     role: "Joint Secretary",
     name: "Mirulla Srithar",
     photo: "/crew/board/mirulla-srithar.jpg",
+    crop: "47% 52%",
     bio: `Stands behind the secretary's half of the record — minutes, membership and the correspondence that keeps a club of this size answerable to itself.`,
     links: {},
   },
@@ -176,6 +221,7 @@ const JOINT_MEMBERS = [
     role: "Joint Treasurer",
     name: "S Lakshman",
     photo: "/crew/board/s-lakshman.jpg",
+    crop: "48% 45%",
     bio: `Stands behind the money: what was budgeted, what was actually spent, and the receipts that have to reconcile the two once the event is over.`,
     links: {},
   },
@@ -183,6 +229,7 @@ const JOINT_MEMBERS = [
     role: "Joint Technical Head",
     name: "Lenny Dany Derek D",
     photo: "/crew/board/Lenny.jpeg",
+    crop: "47% 38%",
     bio: `Stands behind the technical head — the site, the tooling and the workshops, and whatever has to be working before a room fills up.`,
     /*
      * Taken from this repository's git config, so it is worth a second look
@@ -198,7 +245,8 @@ const JOINT_MEMBERS = [
   {
     role: "Joint Creative Head of Design",
     name: "Dishan Marrio I",
-    photo: "/crew/board/dishan-marrio-i.jpeg",
+    photo: "/crew/board/dishani.jpeg",
+    crop: "52% 48%",
     bio: `Stands behind the design head. Posters, decks and stage art — the volume of work the club's look actually costs, week to week.`,
     links: {},
   },
@@ -206,6 +254,7 @@ const JOINT_MEMBERS = [
     role: "Joint Creative Head of Content",
     name: "Sai Shrikar M K",
     photo: "/crew/board/sai-shrikar-mk.png",
+    crop: "52% 30%",
     bio: `Stands behind the content head: the captions, the copy and the scripts, written to a deadline that is usually the same day.`,
     links: {},
   },
@@ -213,6 +262,7 @@ const JOINT_MEMBERS = [
     role: "Joint Head of Outreach",
     name: "Harish Dharrsan S S",
     photo: "/crew/board/harish-dharrsan-ss.jpg",
+    crop: "40% 42%",
     bio: `Stands behind outreach — the follow-ups, the other clubs, and the part of filling a room that is one conversation at a time.`,
     links: {},
   },
@@ -220,6 +270,7 @@ const JOINT_MEMBERS = [
     role: "Joint Head of Working Committee",
     name: "S Lohith",
     photo: "/crew/board/lohith-s.jpeg",
+    crop: "41% 37%",
     bio: `Stands behind the working committee: rosters, volunteers, and being on the floor for the whole of a day that was planned in an hour.`,
     links: {},
   },
@@ -227,6 +278,7 @@ const JOINT_MEMBERS = [
     role: "Joint Head of Logistics",
     name: "Syed Shehroz",
     photo: "/crew/board/syed-shehroz.jpeg",
+    crop: "48% 40%",
     bio: `Stands behind logistics — the hall, the kit, the permissions, and the hour before doors when all of it has to already be in place.`,
     links: {},
   },

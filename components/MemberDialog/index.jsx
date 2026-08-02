@@ -227,7 +227,11 @@ export default function MemberDialog({ member, onClose }) {
                       alt={`${person.name}, ${person.role}`}
                       fill
                       sizes="(max-width: 1024px) 100vw, 320px"
-                      className="object-cover object-top"
+                      // The meanest crop on the site — a portrait photograph
+                      // shown as a band across the top of a sheet — so it is
+                      // the one that most needs to be told where the face is.
+                      className="object-cover"
+                      style={{ objectPosition: person.crop }}
                     />
                   ) : (
                     <span

@@ -289,7 +289,8 @@ function MastermindSlide({ person }) {
               alt={`${person.name}, ${person.role}`}
               fill
               sizes="(max-width: 1024px) 80vw, 30vw"
-              className="object-cover object-top"
+              className="object-cover"
+              style={{ objectPosition: person.crop }}
             />
             <CornerTicks />
           </div>
@@ -404,8 +405,13 @@ function SeatCard({ member, onOpen, standalone = false }) {
                 src={member.photo}
                 alt=""
                 fill
-                sizes="(max-width: 640px) 30vw, (max-width: 1024px) 28vw, 22vw"
-                className="object-cover object-top saturate-[0.72] transition-all duration-700 ease-out group-hover:scale-[1.05] group-hover:saturate-100"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
+                // Where the face is in this particular frame — see `focus` in
+                // the roster. A card is a 4:5 crop of whatever shape the
+                // photograph happens to be, and `top` framed the wall above
+                // anyone standing low in their own picture.
+                className="object-cover saturate-[0.72] transition-all duration-700 ease-out group-hover:scale-[1.05] group-hover:saturate-100"
+                style={{ objectPosition: member.crop }}
               />
             ) : (
               <span
