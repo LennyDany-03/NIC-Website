@@ -284,6 +284,201 @@ const JOINT_MEMBERS = [
   },
 ];
 
+/*
+ * ---------------------------------------------------------------------------
+ * THE BOARD BEFORE THIS ONE
+ *
+ * The same two boards, one year earlier. They are not a separate section: the
+ * seats are the same seats, so both rosters hang off the same two boards and
+ * the visitor switches between them — see `TERMS` below.
+ *
+ * ---------------------------------------------------------------------------
+ * `crop` — why these numbers are so much larger than the ones above
+ *
+ * These portraits are not snapshots. All twenty are the same pre-composed
+ * 1366x768 card: hexagons and black down the left, a red swoosh down the
+ * right, and the subject cut out and stood in the right-hand third of the
+ * frame. Everywhere the site shows a portrait it crops one to something
+ * taller than it is wide — a 4:5 card in the roster keeps a strip 45% of this
+ * file's width — so the whole of the branded left half is cut away and the
+ * only question left is which vertical strip survives.
+ *
+ * That makes `crop` here mean something slightly different from the rule set
+ * out above. There it is where the face is, written down and passed straight
+ * through, because `object-position` maps the image's x% to the container's x%
+ * and a face at 47% can never be cropped out. Do that with these and a face
+ * measured at 65% lands 65% of the way across the card, with the subject's own
+ * shoulder hanging off the right edge — right where the frame's dead space
+ * used to be. So the number written down is the one that lands the subject in
+ * the middle of the crop instead: `x = (2.22f - 0.5) / 1.22`, where `f` is the
+ * face's real position in the frame. It comes out around 78% for a face two
+ * thirds of the way across, which is why every value below is in the seventies
+ * and eighties rather than the forties and fifties.
+ *
+ * The second number barely matters. This art is wider than any container it is
+ * dropped into, so the height fills exactly and the vertical position is only
+ * ever read in one place — a phone turned sideways, where the popup's portrait
+ * band is wider than 16:9. It is the face's real height in the frame, which is
+ * what that case wants.
+ * ---------------------------------------------------------------------------
+ *
+ * FILL ME IN — `bio` and `links`
+ *
+ * Same rule as every roster above: each `bio` describes the *post* as it was
+ * held that year, not the person, and none of it came from a source. Three of
+ * these names sit on the senior board now, and where that is so it is said —
+ * that much is on the roster itself rather than being a claim about anyone.
+ */
+const PREVIOUS_SENIOR_MEMBERS = [
+  {
+    role: "President",
+    name: "Ramprakash R",
+    photo: "/crew/previous-board/ramprakash.png",
+    crop: "76% 32%",
+    bio: `Held the president's seat for the year before this one: what NIC took on, whose name was on it, and the answer whenever it was asked how that went.`,
+    links: {},
+  },
+  {
+    role: "Vice President",
+    name: "Kanishkaa C",
+    photo: "/crew/previous-board/kanishka.png",
+    crop: "80% 35%",
+    bio: `Second chair on the board before this one — the seat that keeps the year moving between meetings and stands in wherever the president cannot be.`,
+    links: {},
+  },
+  {
+    role: "Secretary",
+    name: "Sheerin S",
+    photo: "/crew/previous-board/sheerin.png",
+    crop: "76% 38%",
+    bio: `Kept the record that year: the minutes, the membership, and the correspondence a club this size has to be able to produce on request.`,
+    links: {},
+  },
+  {
+    role: "Treasurer",
+    name: "Kalaimani P",
+    photo: "/crew/previous-board/kalai.png",
+    crop: "79% 35%",
+    bio: `Held the money that year — what was budgeted, what was actually spent, and the receipts that had to reconcile the two once an event was over.`,
+    links: {},
+  },
+  {
+    role: "Technical Head",
+    name: "B S Sri Varshini",
+    photo: "/crew/previous-board/varshini.png",
+    crop: "80% 35%",
+    bio: `Owned everything of NIC's that ran on a machine that year: the tooling, the workshops, and whatever had to work in front of a room on the day.`,
+    links: {},
+  },
+  {
+    role: "Head of Design",
+    name: "Ratheesh Bharathi S",
+    photo: "/crew/previous-board/ratheesh.png",
+    crop: "78% 33%",
+    bio: `Decided what NIC looked like that year — the posters, the decks, the stage, and everything else the club put its name on.`,
+    links: {},
+  },
+  {
+    role: "Head of Content",
+    name: "Anshula S",
+    photo: "/crew/previous-board/anshula.png",
+    crop: "80% 35%",
+    bio: `Everything NIC said in writing that year: the captions, the copy on the posters, the scripts and the announcements.`,
+    links: {},
+  },
+  {
+    role: "Head of Outreach",
+    name: "Dhivyalakshmi V",
+    photo: "/crew/previous-board/dhivya.png",
+    crop: "71% 35%",
+    bio: `Everyone the club had to talk to who was not already in it — other clubs, other departments, speakers, and the students who had not heard of NIC yet.`,
+    links: {},
+  },
+  {
+    role: "Head of Logistics",
+    name: "Sabareeswar B",
+    photo: "/crew/previous-board/sabari.png",
+    crop: "86% 39%",
+    bio: `The hall, the permissions, the chairs, the kit and the timing of all of it, for the year before this one.`,
+    links: {},
+  },
+];
+
+const PREVIOUS_JOINT_MEMBERS = [
+  {
+    role: "Joint Secretary",
+    name: "Athithya S A",
+    photo: "/crew/previous-board/aathi.png",
+    crop: "81% 36%",
+    bio: `Stood behind the secretary's half of the record that year — the minutes, the membership, the correspondence. Holds the presidency on the board after it.`,
+    links: {},
+  },
+  {
+    role: "Joint Treasurer",
+    name: "G Mohammed Azam",
+    photo: "/crew/previous-board/azam.png",
+    crop: "78% 42%",
+    bio: `Stood behind the money that year: what was budgeted, what was spent, and the reconciliation afterwards. Holds secretary and treasurer on the board after it.`,
+    links: {},
+  },
+  {
+    role: "Joint Technical Head",
+    name: "Haryshwa Ganesh",
+    photo: "/crew/previous-board/haryshwa.png",
+    crop: "76% 35%",
+    bio: `Stood behind the technical head that year — the tooling, the workshops, and whatever had to be working before a room filled up.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Design",
+    name: "Sri Varsha S",
+    photo: "/crew/previous-board/varsha.png",
+    crop: "80% 36%",
+    bio: `Stood behind the design head that year: posters, decks and stage art, at the volume the club's look actually costs week to week.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Content",
+    name: "Chandrika Banerjee",
+    photo: "/crew/previous-board/chandrika.png",
+    crop: "79% 38%",
+    bio: `Stood behind the content head that year — the captions, the copy and the scripts, written to a deadline that was usually the same day.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Social Media",
+    name: "J Princeton Vishal",
+    photo: "/crew/previous-board/princeton.png",
+    crop: "78% 34%",
+    bio: `The club as it looked from outside that year: the feed, the order things went up in, and the week a club's account is actually judged on.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Outreach",
+    name: "Neethu Jimmy Joy",
+    photo: "/crew/previous-board/neethu.png",
+    crop: "77% 33%",
+    bio: `Stood behind outreach that year — the follow-ups, the other clubs, the one conversation at a time that fills a room. Holds the outreach head's seat on the board after it.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Operations",
+    name: "Krishith",
+    photo: "/crew/previous-board/krishith.png",
+    crop: "74% 30%",
+    bio: `Ran the floor that year: the rosters, the volunteers, and being there for the whole of a day that was planned in an hour.`,
+    links: {},
+  },
+  {
+    role: "Joint Head of Logistics",
+    name: "Jayachandhran",
+    photo: "/crew/previous-board/jai.png",
+    crop: "76% 33%",
+    bio: `Stood behind logistics that year — the hall, the kit, the permissions, and the hour before doors when all of it has to already be in place.`,
+    links: {},
+  },
+];
+
 /**
  * Seats per screen.
  *
@@ -300,14 +495,62 @@ const JOINT_MEMBERS = [
 export const SEATS_PER_SCREEN = 3;
 
 /**
+ * Which roster is on the table.
+ *
+ * Two boards hold the same nine-and-eight seats a year apart, so this is a
+ * switch rather than a second section: the board keeps its screen, its title
+ * and its place in the deck, and only the names in it change. Six more screens
+ * of roster below the ones already here would be the same content at four
+ * times the scroll.
+ *
+ * `stamp` is what the popup prints after the board's name, and the board
+ * sitting now is deliberately the unmarked case — a card that says nothing
+ * about when it was held is this year's, which is what a visitor who never
+ * touches the switch should be looking at.
+ *
+ * ---------------------------------------------------------------------------
+ * FILL ME IN — the years
+ *
+ * `tab` is what the switch itself says, and it is deliberately vague: nobody
+ * told this file which academic year either board sits for. Once that is known
+ * these read far better as the years themselves — "2025–26" and "2024–25" —
+ * and nothing else has to change.
+ * ---------------------------------------------------------------------------
+ */
+export const TERMS = [
+  {
+    id: "current",
+    tab: "Current",
+    stamp: null,
+  },
+  {
+    id: "previous",
+    tab: "Previous",
+    stamp: "Previous",
+  },
+];
+
+/** What the section opens on, and what a visitor who never touches it sees. */
+export const DEFAULT_TERM = TERMS[0].id;
+
+/**
  * The board label travels on the member rather than being threaded through the
  * components, because the one place it is genuinely needed is the popup — which
- * is opened from the section but rendered outside it, in a portal.
+ * is opened from the section but rendered outside it, in a portal. The term's
+ * stamp travels the same way and for the same reason: once a popup is up, the
+ * switch that opened it is somewhere behind a full-screen scrim.
+ *
+ * Seat ids carry the board and the seat number but not the term, so the two
+ * rosters hand React the same keys. Switching then swaps the contents of a row
+ * that is already standing rather than tearing it down and dealing a new one —
+ * which, on a deck where every row is a slide, is the difference between a
+ * roster changing and the page jumping under whoever changed it.
  */
-const seat = (prefix, board, members) =>
+const seat = (prefix, board, stamp, members) =>
   members.map((member, index) => ({
     ...member,
     board,
+    term: stamp,
     id: `${prefix}-${index + 1}`,
     index: String(index + 1).padStart(2, "0"),
   }));
@@ -321,10 +564,23 @@ const intoRows = (members) => {
   return rows;
 };
 
-const board = ({ prefix, label, members, ...rest }) => {
-  const seats = seat(prefix, label, members);
-  return { ...rest, label, members: seats, rows: intoRows(seats) };
-};
+/**
+ * A board is its identity — id, title, what the office is for — plus one dealt
+ * roster per term, keyed by `TERMS`. Everything the section renders before the
+ * seats themselves is shared between the two; everything that turns over with
+ * the year lives under `terms`.
+ */
+const board = ({ prefix, label, terms, ...rest }) => ({
+  ...rest,
+  label,
+  terms: Object.fromEntries(
+    TERMS.map((term) => {
+      const roster = terms[term.id];
+      const seats = seat(prefix, label, term.stamp, roster.members);
+      return [term.id, { ...roster, members: seats, rows: intoRows(seats) }];
+    }),
+  ),
+});
 
 /*
  * ---------------------------------------------------------------------------
@@ -339,6 +595,9 @@ const board = ({ prefix, label, members, ...rest }) => {
  * and neither came from a source: they say what a board of that name is for,
  * which is the one thing that stays true as the roster turns over. Rewrite them
  * in NIC's own terms if the split of work is not quite this.
+ *
+ * The `body` is per-term for one reason: it counts the seats out loud, and the
+ * two boards are not the same size a year apart. Everything above it is shared.
  * ---------------------------------------------------------------------------
  */
 export const BOARDS = [
@@ -351,8 +610,16 @@ export const BOARDS = [
     lead: "Senior Board of",
     accent: "Directors",
     caption: "Sets the agenda, and answers for it",
-    body: `Nine seats, and the year is theirs to set. The senior board decides what NIC takes on, puts the club's name to it, and answers for how it turns out — the calendar, what it costs, and the standard everything is held to.`,
-    members: SENIOR_MEMBERS,
+    terms: {
+      current: {
+        body: `Nine seats, and the year is theirs to set. The senior board decides what NIC takes on, puts the club's name to it, and answers for how it turns out — the calendar, what it costs, and the standard everything is held to.`,
+        members: SENIOR_MEMBERS,
+      },
+      previous: {
+        body: `The same nine seats, one year earlier. This is the board that set the calendar before this one did, spent the budget before this one had it, and handed over a club that had already been run for a year.`,
+        members: PREVIOUS_SENIOR_MEMBERS,
+      },
+    },
   }),
   board({
     id: "joint-board",
@@ -363,7 +630,15 @@ export const BOARDS = [
     lead: "Joint Board of",
     accent: "Directors",
     caption: "Carries it out, and learns the job doing it",
-    body: `Eight more seats, each one standing behind a portfolio on the board above. The joint board is where the work actually gets carried out, and where the next senior board learns the job by doing it a year early.`,
-    members: JOINT_MEMBERS,
+    terms: {
+      current: {
+        body: `Eight more seats, each one standing behind a portfolio on the board above. The joint board is where the work actually gets carried out, and where the next senior board learns the job by doing it a year early.`,
+        members: JOINT_MEMBERS,
+      },
+      previous: {
+        body: `Nine seats standing behind the nine above them. Some of these names are on the senior board now, which is the whole argument for a joint board: it is where the next one learns the job a year early.`,
+        members: PREVIOUS_JOINT_MEMBERS,
+      },
+    },
   }),
 ];

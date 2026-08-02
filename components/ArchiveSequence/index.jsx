@@ -237,10 +237,25 @@ function LedgerRow({ entry }) {
         </span>
 
         <div className="min-w-0 flex-1">
-          {/* The date tag, in the same tinted well the roster's roles use. */}
-          {entry.year && (
-            <span className="mb-2 inline-block border-l-2 border-nic-red bg-nic-red/12 py-0.5 pl-2 pr-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#ff6b6b] sm:text-[10px]">
-              {entry.year}
+          {/*
+           * The date tag, in the same tinted well the roster's roles use, with
+           * the register beside it in a plain one — a workshop and a symposium
+           * are different animals, and which it was is the second thing anyone
+           * scanning a ledger wants. It wraps under the date on a narrow phone
+           * rather than squeezing the two tags together.
+           */}
+          {(entry.year || entry.kind) && (
+            <span className="mb-2 flex flex-wrap items-center gap-2">
+              {entry.year && (
+                <span className="inline-block border-l-2 border-nic-red bg-nic-red/12 py-0.5 pl-2 pr-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#ff6b6b] sm:text-[10px]">
+                  {entry.year}
+                </span>
+              )}
+              {entry.kind && (
+                <span className="inline-block border-l-2 border-white/25 bg-white/[0.06] py-0.5 pl-2 pr-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-400 sm:text-[10px]">
+                  {entry.kind}
+                </span>
+              )}
             </span>
           )}
 
@@ -252,11 +267,19 @@ function LedgerRow({ entry }) {
             {filled ? entry.title : "Entry open"}
           </p>
 
-          <p className="mt-2 text-[12px] leading-relaxed text-zinc-500 sm:text-[13px] sm:leading-[1.7]">
-            {filled
-              ? entry.note
-              : "Nothing filed against this slot yet. It is held open rather than hidden, so the ledger reads as what it is — a record still being written."}
-          </p>
+          {/*
+           * Only where there is something to say. Most of the register carries
+           * a title and a date and nothing else, and a row that stops there
+           * reads as a filed line — which is what it is. Padding every one of
+           * them out to a paragraph would mean writing the paragraph.
+           */}
+          {(filled ? entry.note : true) && (
+            <p className="mt-2 text-[12px] leading-relaxed text-zinc-500 sm:text-[13px] sm:leading-[1.7]">
+              {filled
+                ? entry.note
+                : "Nothing filed against this slot yet. It is held open rather than hidden, so the ledger reads as what it is — a record still being written."}
+            </p>
+          )}
         </div>
       </div>
     </motion.li>

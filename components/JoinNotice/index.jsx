@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import CornerTicks from "../CornerTicks";
 import { ContactStrip } from "../ContactIcons";
 import { slideBlock, slideRise, slideViewport } from "../motionPresets";
-import { BOARDS } from "../CrewSequence/content";
+import { BOARDS, DEFAULT_TERM } from "../CrewSequence/content";
 import { CLUB_LINKS } from "../siteLinks";
 
 /**
@@ -31,13 +31,17 @@ import { CLUB_LINKS } from "../siteLinks";
  * than restated here. Names, captions and seat counts drift the moment they are
  * written down twice, and this page is the least likely of the two to be
  * remembered when a board changes.
+ *
+ * A board now holds a roster per term — the front page can be switched back to
+ * the board before this one — and the seat count here is the standing one.
+ * Nobody applies to a board that has already handed over.
  */
 const ASK = BOARDS.map((board) => ({
   id: board.id,
   short: board.short,
   label: board.label,
   caption: board.caption,
-  seats: board.members.length,
+  seats: board.terms[DEFAULT_TERM].members.length,
 }));
 
 function Eyebrow({ children }) {
