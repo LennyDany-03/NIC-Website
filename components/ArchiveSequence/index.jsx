@@ -11,7 +11,9 @@ import {
 } from "framer-motion";
 import CornerTicks from "../CornerTicks";
 import FrameCanvas from "../FrameCanvas";
+import SceneStill from "../SceneStill";
 import Slide from "../Slide";
+import useIsMobile from "../useIsMobile";
 import { seatCard, seatRow, slideRise } from "../motionPresets";
 import { GRAIN_PLATE, HEADING_SHADOW, LABEL_SHADOW, PANEL } from "../surfaces";
 import { ARCHIVE, GALLERY, LEDGER } from "./content";
@@ -50,6 +52,15 @@ const TITLE_LG = "text-[clamp(1.75rem,min(6.5vw,9vh),4rem)]";
  * only has to keep the ledger's four rows honest on a short laptop.
  */
 const BAND = "mx-auto w-full max-w-6xl";
+
+/**
+ * The frame the phone hangs the archive on: the end of the pull-back, where the
+ * swarm has resolved into the skyline it was taken over. The near-black sky
+ * across the top is what a screen of ledger rows needs behind it, and the shot
+ * is the one in the sequence that is legible at a standstill — mid-swarm, a
+ * still of tumbling prints is just a blur.
+ */
+const PHONE_STILL = "/frames/frames_cityskyline/frame_0230.webp";
 
 function Eyebrow({ children, centered = false }) {
   return (
@@ -136,15 +147,23 @@ function RowHead({ label, range, index, total }) {
           aria-hidden
           className="w-1 shrink-0 bg-nic-red shadow-[0_0_18px_3px_rgba(237,10,20,0.6)] sm:w-[5px]"
         />
-        <span className="flex min-w-0 items-center gap-3 bg-black/80 py-2.5 pl-4 pr-5 sm:gap-4 sm:bg-black/70 sm:py-3 sm:pl-5 sm:pr-6 sm:backdrop-blur-sm">
+        {/*
+         * Stacked until there is width for a line. Side by side, the label is
+         * the flexible half and a phone truncates it — which puts an ellipsis
+         * through the one word that says what is being counted.
+         */}
+        <span className="flex min-w-0 flex-col justify-center gap-1 bg-black/80 py-2.5 pl-4 pr-5 sm:flex-row sm:items-center sm:gap-4 sm:bg-black/70 sm:py-3 sm:pl-5 sm:pr-6 sm:backdrop-blur-sm">
           <span
-            className={`truncate font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-white sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
+            className={`font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-white sm:truncate sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
           >
             {label}
           </span>
-          <span aria-hidden className="h-4 w-px shrink-0 bg-white/25" />
           <span
-            className={`shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-[#ff3b3b] sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
+            aria-hidden
+            className="hidden h-4 w-px shrink-0 bg-white/25 sm:block"
+          />
+          <span
+            className={`shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-[#ff3b3b] sm:text-[13px] sm:tracking-[0.24em] ${LABEL_SHADOW}`}
           >
             {range}
           </span>
@@ -380,6 +399,7 @@ export default function ArchiveSequence({ framesRef, ready }) {
   const sectionRef = useRef(null);
   const ledgerRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -408,34 +428,43 @@ export default function ArchiveSequence({ framesRef, ready }) {
   );
 
   return (
-    <section ref={sectionRef} className="relative z-30 pull-up-viewport bg-black">
+    <section ref={sectionRef} className="relative z-30 bg-black lg:pull-up-viewport">
       {/* The leading edge — the seam every section on this page is pushed by. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-linear-to-r from-transparent via-nic-red to-transparent shadow-[0_0_28px_6px_rgba(237,10,20,0.55)]"
       />
 
-      <div className="sticky top-0 h-viewport w-full overflow-hidden">
-        <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
-        <motion.div
-          aria-hidden
-          className="absolute inset-0 bg-black"
-          style={{ opacity: scrimOpacity }}
+      {isMobile ? (
+        <SceneStill
+          still={PHONE_STILL}
+          opacity={0.5}
+          drift={7}
+          glow="radial-gradient(85% 55% at 50% 55%, rgba(237,10,20,0.2) 0%, rgba(237,10,20,0) 72%)"
         />
-        {/* The swarm is densest through the middle of the frame and thins to
-            near-black at the edges, so the vignette here only has to finish
-            what the shot is already doing. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_34%,rgba(0,0,0,0.55)_100%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7),rgba(0,0,0,0))]"
-        />
-      </div>
+      ) : (
+        <div className="sticky top-0 h-viewport w-full overflow-hidden">
+          <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 bg-black"
+            style={{ opacity: scrimOpacity }}
+          />
+          {/* The swarm is densest through the middle of the frame and thins to
+              near-black at the edges, so the vignette here only has to finish
+              what the shot is already doing. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_34%,rgba(0,0,0,0.55)_100%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.7),rgba(0,0,0,0))]"
+          />
+        </div>
+      )}
 
-      <div className="relative pull-up-viewport">
+      <div className="relative lg:pull-up-viewport">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
           {/* ------------------------------------------------- the archive */}
           <TitleSlide id="archive" content={ARCHIVE} note={ARCHIVE.note} />

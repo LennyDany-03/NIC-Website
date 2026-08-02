@@ -12,11 +12,13 @@ import {
 import CornerTicks from "../CornerTicks";
 import FrameCanvas from "../FrameCanvas";
 import MemberDialog from "../MemberDialog";
+import SceneStill from "../SceneStill";
 import Slide, {
   SLIDE_COMPLETE_AT,
   SLIDE_REARM_MARGIN,
   SLIDE_TRIGGER_AT,
 } from "../Slide";
+import useIsMobile from "../useIsMobile";
 import useSlideHandoff from "../useSlideHandoff";
 import {
   rowFromLeft,
@@ -55,6 +57,13 @@ const BOARDS_OFFSET = ["start end", "start center"];
 const RUNWAY_OFFSET = ["start end", "start start"];
 
 /**
+ * The corridor, held at the frame where the vanishing point is dead centre —
+ * the one composition in the sequence that is as much a portrait shot as a
+ * landscape one, and the reason the phone can stand a roster in it.
+ */
+const PHONE_STILL = "/frames/frames_corridor/frame_0110.webp";
+
+/**
  * The portrait is sized off screen height, not width.
  *
  * A roster slide only advances as one while it fits on one screen, and the
@@ -69,7 +78,11 @@ const RUNWAY_OFFSET = ["start end", "start start"];
  * grid item rather than an `auto` column, is every phone.
  */
 const PORTRAIT_SIZE = {
-  "--portrait-h": "clamp(15rem, 48vh, 26rem)",
+  // The `vw` term only ever binds on a phone, where the figure is a full-width
+  // grid item: 48vh of a tall portrait screen is wider than the column it has
+  // to stand in, and a portrait that overflows its own slide is the one thing
+  // worse than a small one.
+  "--portrait-h": "clamp(13rem, min(48vh, 104vw), 26rem)",
 };
 const PORTRAIT_BOX = "h-[var(--portrait-h)] w-[calc(var(--portrait-h)*0.8)]";
 
@@ -103,6 +116,20 @@ const PORTRAIT_BOX = "h-[var(--portrait-h)] w-[calc(var(--portrait-h)*0.8)]";
  */
 const SEAT_BAND = "mx-auto w-full max-w-[min(72rem,calc(148.8vh-10.4rem))]";
 const SEAT_GRID = `${SEAT_BAND} grid grid-cols-3 items-stretch gap-3 sm:gap-5 lg:gap-8`;
+
+/**
+ * The same seats on a phone, where three abreast is 110px of card and a face
+ * in it is a thumbnail of a face. Two abreast and the whole board in one grid:
+ * paging nine seats into three screens is a deck's idea, and there is no deck
+ * here — a scroll is a scroll, so the roster is simply a roster and every card
+ * is twice the size it was.
+ *
+ * Back to three from `sm` up. Two columns of a tablet is a 350px card and a
+ * portrait the size of a poster — the count is chosen to keep a face readable,
+ * not to fill the width with as few cards as possible.
+ */
+const PHONE_SEAT_GRID =
+  "grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 sm:gap-4";
 
 /**
  * Two sizes of title screen, because the two kinds of title are two very
@@ -262,7 +289,8 @@ function MastermindSlide({ person }) {
               alt={`${person.name}, ${person.role}`}
               fill
               sizes="(max-width: 1024px) 80vw, 30vw"
-              className="object-cover object-top"
+              className="object-cover"
+              style={{ objectPosition: person.crop }}
             />
             <CornerTicks />
           </div>
@@ -311,11 +339,28 @@ function MastermindSlide({ person }) {
  * place the rest of a person fits — see MemberDialog — and an open seat has an
  * answer of its own worth giving, which is that nobody holds it yet.
  */
-function SeatCard({ member, onOpen }) {
+function SeatCard({ member, onOpen, standalone = false }) {
   const named = Boolean(member.name);
 
+  /*
+   * A card in a row of three is dealt by the slide it belongs to. A card in the
+   * phone's roster grid has no row to be dealt by — the grid is taller than the
+   * screen — so it watches for itself and arrives as it is scrolled to.
+   */
+  const reveal = standalone
+    ? {
+        initial: "hidden",
+        whileInView: "shown",
+        viewport: { once: true, amount: 0.3 },
+      }
+    : null;
+
   return (
-    <motion.div variants={seatCard} className="group relative h-full">
+    <motion.div
+      variants={seatCard}
+      {...reveal}
+      className="group relative h-full"
+    >
       <button
         type="button"
         onClick={() => onOpen(member)}
@@ -360,8 +405,13 @@ function SeatCard({ member, onOpen }) {
                 src={member.photo}
                 alt=""
                 fill
-                sizes="(max-width: 640px) 30vw, (max-width: 1024px) 28vw, 22vw"
-                className="object-cover object-top saturate-[0.72] transition-all duration-700 ease-out group-hover:scale-[1.05] group-hover:saturate-100"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw"
+                // Where the face is in this particular frame — see `focus` in
+                // the roster. A card is a 4:5 crop of whatever shape the
+                // photograph happens to be, and `top` framed the wall above
+                // anyone standing low in their own picture.
+                className="object-cover saturate-[0.72] transition-all duration-700 ease-out group-hover:scale-[1.05] group-hover:saturate-100"
+                style={{ objectPosition: member.crop }}
               />
             ) : (
               <span
@@ -404,9 +454,14 @@ function SeatCard({ member, onOpen }) {
            * Committee" wraps at phone widths — lifts all three captions
            * together and the row stays a row rather than three ragged columns.
            */}
-          <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 border-t border-white/10 px-2 py-2.5 sm:gap-2.5 sm:px-4 sm:py-4">
+          {/*
+           * The type is set for two cards abreast rather than three: the 8px
+           * role stamp and 12px name this carried were sized for a third of a
+           * phone screen, and read as fine print on half of one.
+           */}
+          <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1.5 border-t border-white/10 px-3 py-3 sm:gap-2.5 sm:px-4 sm:py-4">
             <span
-              className={`w-fit max-w-full border-l-2 py-0.5 pl-1.5 pr-1.5 font-mono text-[8px] font-bold uppercase leading-tight tracking-[0.12em] sm:py-1 sm:pl-2 sm:pr-2.5 sm:text-[10px] sm:tracking-[0.15em] lg:text-[11px] ${
+              className={`w-fit max-w-full border-l-2 py-0.5 pl-1.5 pr-1.5 font-mono text-[9px] font-bold uppercase leading-tight tracking-[0.12em] sm:py-1 sm:pl-2 sm:pr-2.5 sm:text-[10px] sm:tracking-[0.15em] lg:text-[11px] ${
                 named
                   ? "border-nic-red bg-nic-red/12 text-[#ff6b6b]"
                   : "border-white/25 bg-white/5 text-zinc-400"
@@ -416,7 +471,7 @@ function SeatCard({ member, onOpen }) {
             </span>
 
             <span
-              className={`text-[12px] font-black uppercase leading-[1.1] tracking-[0.01em] sm:text-[16px] lg:text-[19px] ${
+              className={`text-[13px] font-black uppercase leading-[1.15] tracking-[0.01em] sm:text-[16px] lg:text-[19px] ${
                 named ? "text-white" : "text-zinc-500"
               }`}
             >
@@ -429,10 +484,15 @@ function SeatCard({ member, onOpen }) {
            * bar that slid up over the bottom of the photograph, which is now
            * where the caption lives — and a rule that draws itself across the
            * whole width says "this opens" without asking for a line of its own.
+           *
+           * Drawn on a pointer, standing on a phone. A rule that only appears
+           * on hover says nothing at all on a device that cannot hover, and
+           * "this card opens" is the one thing a roster of tappable faces has
+           * to say — so touch gets it dimmed but permanently.
            */}
           <span
             aria-hidden
-            className="h-[2px] w-0 bg-nic-red transition-all duration-500 ease-out group-hover:w-full group-focus-within:w-full"
+            className="h-[2px] w-full bg-nic-red/40 transition-all duration-500 ease-out lg:w-0 lg:bg-nic-red lg:group-hover:w-full lg:group-focus-within:w-full"
           />
         </div>
       </button>
@@ -544,6 +604,46 @@ function RowHead({ board, row, index, rows }) {
 }
 
 /**
+ * The head of the phone's roster grid.
+ *
+ * The desktop rail carries a counter and a set of progress ticks because there
+ * are three screens of seats to keep your place in. Here there is one grid and
+ * you can see where you are in it, so the rail keeps only what it is actually
+ * for: which board these faces belong to, and how many of them there are. The
+ * slate stacks rather than truncating — "SENIOR BOAR…" was the phone's version
+ * of a label that fits on a laptop.
+ */
+function BoardHead({ board }) {
+  return (
+    <motion.div variants={slideRise} className="flex items-center gap-4">
+      <div className="flex min-w-0 items-stretch">
+        <span
+          aria-hidden
+          className="w-1 shrink-0 bg-nic-red shadow-[0_0_18px_3px_rgba(237,10,20,0.6)]"
+        />
+        <span className="flex min-w-0 flex-col gap-1 bg-black/80 py-2.5 pl-4 pr-5">
+          <span
+            className={`font-mono text-[12px] font-medium uppercase tracking-[0.22em] text-white ${LABEL_SHADOW}`}
+          >
+            {board.short}
+          </span>
+          <span
+            className={`font-mono text-[10px] uppercase tracking-[0.22em] text-[#ff3b3b] ${LABEL_SHADOW}`}
+          >
+            {board.members.length} seats · tap a card
+          </span>
+        </span>
+      </div>
+
+      <span
+        aria-hidden
+        className="h-px min-w-0 flex-1 bg-linear-to-r from-white/30 via-white/12 to-transparent"
+      />
+    </motion.div>
+  );
+}
+
+/**
  * A board, dealt out three seats at a time.
  *
  * Nine cards in one grid was a page of a staff directory: everything arrived at
@@ -560,7 +660,7 @@ function RowHead({ board, row, index, rows }) {
  * the deck takes one. The running head above each row is part of the sheet
  * being dealt instead: it arrives with its three cards and leaves with them.
  */
-function BoardDeck({ board, onOpen, isLast = false }) {
+function BoardDeck({ board, onOpen, isLast = false, isMobile = false }) {
   const rows = board.rows;
 
   return (
@@ -578,29 +678,46 @@ function BoardDeck({ board, onOpen, isLast = false }) {
         note={`${board.caption} · ${board.members.length} seats`}
       />
 
-      {rows.map((row, index) => (
-        <Slide
-          key={row[0].id}
-          id={`${board.id}-${index + 1}`}
-          // The very last row of the very last board has no push of its own:
-          // what leaves next is the whole section, corridor included, shoved
-          // off by the archive. That handoff is owned below.
-          advances={!(isLast && index === rows.length - 1)}
-        >
-          {/*
-           * A running head, not a title. The screen before this one said which
-           * board this is at full size, so all these three have to do is hold
-           * the thread — which board, which seats, and how much of it is left.
-           */}
-          <RowHead board={board} row={row} index={index} rows={rows} />
+      {isMobile ? (
+        <Slide id={`${board.id}-roster`} advances={false}>
+          <BoardHead board={board} />
 
-          <motion.div variants={seatRow} className={`mt-8 ${SEAT_GRID}`}>
-            {row.map((member) => (
-              <SeatCard key={member.id} member={member} onOpen={onOpen} />
+          <div className={`mt-7 ${PHONE_SEAT_GRID}`}>
+            {board.members.map((member) => (
+              <SeatCard
+                key={member.id}
+                member={member}
+                onOpen={onOpen}
+                standalone
+              />
             ))}
-          </motion.div>
+          </div>
         </Slide>
-      ))}
+      ) : (
+        rows.map((row, index) => (
+          <Slide
+            key={row[0].id}
+            id={`${board.id}-${index + 1}`}
+            // The very last row of the very last board has no push of its own:
+            // what leaves next is the whole section, corridor included, shoved
+            // off by the archive. That handoff is owned below.
+            advances={!(isLast && index === rows.length - 1)}
+          >
+            {/*
+             * A running head, not a title. The screen before this one said which
+             * board this is at full size, so all these three have to do is hold
+             * the thread — which board, which seats, and how much of it is left.
+             */}
+            <RowHead board={board} row={row} index={index} rows={rows} />
+
+            <motion.div variants={seatRow} className={`mt-8 ${SEAT_GRID}`}>
+              {row.map((member) => (
+                <SeatCard key={member.id} member={member} onOpen={onOpen} />
+              ))}
+            </motion.div>
+          </Slide>
+        ))
+      )}
     </section>
   );
 }
@@ -610,6 +727,7 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
   const boardsRef = useRef(null);
   const runwayRef = useRef(null);
   const prefersReducedMotion = useReducedMotion();
+  const isMobile = useIsMobile();
 
   /** The seat whose popup is up, or null. One at a time, for the whole page. */
   const [openSeat, setOpenSeat] = useState(null);
@@ -663,13 +781,13 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
     completeAt: SLIDE_COMPLETE_AT,
     triggerAt: SLIDE_TRIGGER_AT,
     rearmMargin: SLIDE_REARM_MARGIN,
-    enabled: autoPush,
+    enabled: autoPush && !isMobile,
   });
 
   return (
     <section
       ref={sectionRef}
-      className="relative z-20 pull-up-viewport bg-black"
+      className="relative z-20 bg-black lg:pull-up-viewport"
     >
       {/* The leading edge, same as the city's — this is the seam of the push. */}
       <div
@@ -677,38 +795,53 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
         className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-linear-to-r from-transparent via-nic-red to-transparent shadow-[0_0_28px_6px_rgba(237,10,20,0.55)]"
       />
 
-      {/* Pinned corridor — a hall of lit frames to hang the crew in. */}
-      <motion.div
-        className="sticky top-0 h-viewport w-full overflow-hidden will-change-transform"
-        style={prefersReducedMotion ? undefined : { y: exitY }}
-      >
-        <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
-        {/* Opens for the faculty, closes a little for the boards. */}
+      {isMobile ? (
+        /*
+         * Darker than the other two stills. This one is a corridor lit almost
+         * white down its left wall, and it is also the section carrying the
+         * most small type on the page — seventeen names, their posts, and two
+         * screens of copy. The roster wins.
+         */
+        <SceneStill
+          still={PHONE_STILL}
+          opacity={0.4}
+          drift={5}
+          glow="radial-gradient(80% 50% at 50% 40%, rgba(237,10,20,0.16) 0%, rgba(237,10,20,0) 70%)"
+        />
+      ) : (
+        /* Pinned corridor — a hall of lit frames to hang the crew in. */
         <motion.div
-          aria-hidden
-          className="absolute inset-0 bg-black"
-          style={{ opacity: scrimOpacity }}
-        />
-        {/*
-         * Weighted to both walls rather than to the left alone. The corridor is
-         * blown out near-white down the left where the bars are and dark down
-         * the right where its own frames hang, so the two ends need opposite
-         * treatment for opposite reasons: the left has to come down far enough
-         * that a portrait can stand against it, the right has to come down far
-         * enough to carry a plate of text. The lit vanishing point in the
-         * middle is the part worth keeping, and it is the part left alone.
-         */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.12)_46%,rgba(0,0,0,0.44)_100%)]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.45)_100%)]"
-        />
-      </motion.div>
+          className="sticky top-0 h-viewport w-full overflow-hidden will-change-transform"
+          style={prefersReducedMotion ? undefined : { y: exitY }}
+        >
+          <FrameCanvas framesRef={framesRef} progress={playhead} ready={ready} />
+          {/* Opens for the faculty, closes a little for the boards. */}
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 bg-black"
+            style={{ opacity: scrimOpacity }}
+          />
+          {/*
+           * Weighted to both walls rather than to the left alone. The corridor is
+           * blown out near-white down the left where the bars are and dark down
+           * the right where its own frames hang, so the two ends need opposite
+           * treatment for opposite reasons: the left has to come down far enough
+           * that a portrait can stand against it, the right has to come down far
+           * enough to carry a plate of text. The lit vanishing point in the
+           * middle is the part worth keeping, and it is the part left alone.
+           */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.12)_46%,rgba(0,0,0,0.44)_100%)]"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0)_38%,rgba(0,0,0,0.45)_100%)]"
+          />
+        </motion.div>
+      )}
 
-      <div className="relative pull-up-viewport">
+      <div className="relative lg:pull-up-viewport">
         <div className="mx-auto w-full max-w-6xl px-6 sm:px-8">
           {/* ---------------------------------------------- The masterminds */}
           {/*
@@ -738,6 +871,7 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
                 board={board}
                 onOpen={showSeat}
                 isLast={index === BOARDS.length - 1}
+                isMobile={isMobile}
               />
             ))}
           </div>
@@ -746,9 +880,10 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
         {/*
          * The runway. Exactly one viewport of empty page for the archive to be
          * pushed in over — see RUNWAY_OFFSET for why it is an element rather
-         * than a number.
+         * than a number. Desktop only: nothing is pushed on a phone, so it
+         * would be a screen of nothing between two sections.
          */}
-        <div ref={runwayRef} aria-hidden className="h-viewport" />
+        {!isMobile && <div ref={runwayRef} aria-hidden className="h-viewport" />}
       </div>
 
       {/* Portalled to the body — see MemberDialog for why it cannot live here. */}
