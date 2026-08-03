@@ -50,6 +50,15 @@ export const MASTERMINDS = {
   ],
 };
 
+/**
+ * The stable key an admin's edited bio is stored under — see
+ * /admin/dashboard/bod and useBioOverrides. Board seats get theirs stamped
+ * on by `seat()` below, since a slug there needs the prefix and term this
+ * file doesn't carry on a mastermind; a mastermind's own `id` is already
+ * unique, so this just namespaces it.
+ */
+export const mastermindSlug = (id) => `mastermind-${id}`;
+
 export const CREW = {
   eyebrow: "05 — Meet the crew",
   lead: "Meet the",
@@ -546,17 +555,23 @@ export const DEFAULT_TERM = TERMS[0].id;
  * which, on a deck where every row is a slide, is the difference between a
  * roster changing and the page jumping under whoever changed it.
  */
-const seat = (prefix, board, stamp, members) =>
+const seat = (prefix, board, term, members) =>
   members.map((member, index) => ({
     ...member,
     board,
-    term: stamp,
+    term: term.stamp,
     id: `${prefix}-${index + 1}`,
     index: String(index + 1).padStart(2, "0"),
+    // Stable key a bio override is stored under — see mastermindSlug above
+    // and /admin/dashboard/bod. Index-based rather than role-based so a
+    // role with punctuation ("Secretary & Treasurer") never has to be
+    // slugified, and it never collides between terms because `term.id`
+    // (not the display `stamp`) is part of it.
+    slug: `${prefix}-${term.id}-${index + 1}`,
   }));
 
 /** Deals a roster into screens. A short last row is fine — it stays left-aligned. */
-const intoRows = (members) => {
+export const intoRows = (members) => {
   const rows = [];
   for (let i = 0; i < members.length; i += SEATS_PER_SCREEN) {
     rows.push(members.slice(i, i + SEATS_PER_SCREEN));
@@ -576,7 +591,7 @@ const board = ({ prefix, label, terms, ...rest }) => ({
   terms: Object.fromEntries(
     TERMS.map((term) => {
       const roster = terms[term.id];
-      const seats = seat(prefix, label, term.stamp, roster.members);
+      const seats = seat(prefix, label, term, roster.members);
       return [term.id, { ...roster, members: seats, rows: intoRows(seats) }];
     }),
   ),

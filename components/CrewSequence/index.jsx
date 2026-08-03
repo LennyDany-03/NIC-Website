@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
   motion,
@@ -18,6 +18,7 @@ import Slide, {
   SLIDE_REARM_MARGIN,
   SLIDE_TRIGGER_AT,
 } from "../Slide";
+import useBioOverrides from "../useBioOverrides";
 import useIsMobile from "../useIsMobile";
 import useSlideHandoff from "../useSlideHandoff";
 import {
@@ -28,7 +29,15 @@ import {
   slideRise,
 } from "../motionPresets";
 import { GRAIN_PLATE, HEADING_SHADOW, LABEL_SHADOW, PANEL } from "../surfaces";
-import { BOARDS, CREW, DEFAULT_TERM, MASTERMINDS, TERMS } from "./content";
+import {
+  BOARDS,
+  CREW,
+  DEFAULT_TERM,
+  MASTERMINDS,
+  TERMS,
+  intoRows,
+  mastermindSlug,
+} from "./content";
 
 /**
  * How dark the corridor is allowed to be.
@@ -893,6 +902,51 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
   const prefersReducedMotion = useReducedMotion();
   const isMobile = useIsMobile();
 
+  /*
+   * Bios an admin has saved from /admin/dashboard/bod, merged over the
+   * placeholder copy in content.js. Fetched once on mount — see
+   * useBioOverrides — so masterminds and boards briefly render the
+   * placeholder text before the real bios land, then re-render once.
+   */
+  const bioOverrides = useBioOverrides();
+
+  const people = useMemo(
+    () =>
+      MASTERMINDS.people.map((person) => {
+        const override = bioOverrides[mastermindSlug(person.id)];
+        if (!override) return person;
+        return {
+          ...person,
+          bio: override.bio || person.bio,
+          photo: override.photo || person.photo,
+        };
+      }),
+    [bioOverrides],
+  );
+
+  const boards = useMemo(
+    () =>
+      BOARDS.map((board) => ({
+        ...board,
+        terms: Object.fromEntries(
+          Object.entries(board.terms).map(([termId, roster]) => {
+            const members = roster.members.map((member) => {
+              const override = bioOverrides[member.slug];
+              if (!override) return member;
+              return {
+                ...member,
+                bio: override.bio || member.bio,
+                photo: override.photo || member.photo,
+                links: { ...member.links, ...override.links },
+              };
+            });
+            return [termId, { ...roster, members, rows: intoRows(members) }];
+          }),
+        ),
+      })),
+    [bioOverrides],
+  );
+
   /** The seat whose popup is up, or null. One at a time, for the whole page. */
   const [openSeat, setOpenSeat] = useState(null);
   const showSeat = useCallback((member) => setOpenSeat(member), []);
@@ -1027,7 +1081,7 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
            */}
           <TitleSlide id="masterminds" content={MASTERMINDS} />
 
-          {MASTERMINDS.people.map((person) => (
+          {people.map((person) => (
             <MastermindSlide key={person.id} person={person} />
           ))}
 
@@ -1040,14 +1094,14 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
 
           {/* -------------------------------------------------- The two boards */}
           <div ref={boardsRef}>
-            {BOARDS.map((board, index) => (
+            {boards.map((board, index) => (
               <BoardDeck
                 key={board.id}
                 board={board}
                 term={term}
                 onTermChange={setTerm}
                 onOpen={showSeat}
-                isLast={index === BOARDS.length - 1}
+                isLast={index === boards.length - 1}
                 isMobile={isMobile}
               />
             ))}
