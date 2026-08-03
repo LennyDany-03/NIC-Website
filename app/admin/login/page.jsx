@@ -3,6 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import CornerTicks from "@/components/CornerTicks";
+import NicLogoMark from "@/components/NicLogoMark";
+import {
+  ADMIN_BTN_PRIMARY,
+  ADMIN_FIELD,
+  ADMIN_LABEL,
+  ADMIN_PANEL,
+} from "@/components/Admin/surfaces";
+import { HEADING_SHADOW, LABEL_SHADOW } from "@/components/surfaces";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -33,19 +42,40 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-6 text-zinc-100">
+    <main className="flex min-h-viewport items-center justify-center px-6 py-16">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm border border-white/12 bg-zinc-950 p-8"
+        className={`relative w-full max-w-sm p-8 shadow-[0_40px_120px_-30px_rgba(0,0,0,1)] sm:p-9 ${ADMIN_PANEL}`}
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red">
-          NIC admin
+        {/* The leading seam, solid rather than a hairline fade — at this width
+            a fade has nothing left in the middle to read as red. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-nic-red shadow-[0_0_20px_3px_rgba(237,10,20,0.5)]"
+        />
+        <CornerTicks still />
+
+        <NicLogoMark className="h-12 w-auto" title="NIC" />
+
+        <span
+          className={`mt-6 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.4em] text-nic-red ${LABEL_SHADOW}`}
+        >
+          <span aria-hidden className="h-px w-5 bg-nic-red/70" />
+          Restricted
         </span>
-        <h1 className="mt-3 text-2xl font-black uppercase tracking-tight text-white">
+
+        <h1
+          className={`mt-3 text-3xl font-black uppercase leading-[0.95] tracking-tight text-white ${HEADING_SHADOW}`}
+        >
           Sign in
         </h1>
 
-        <label className="mt-8 block text-xs uppercase tracking-[0.2em] text-zinc-400">
+        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+          The board's own console. Accounts are issued from Supabase — there
+          is no sign-up.
+        </p>
+
+        <label className={`mt-8 block ${ADMIN_LABEL}`}>
           Email
           <input
             type="email"
@@ -54,11 +84,11 @@ export default function AdminLoginPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-2 w-full border border-white/15 bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-nic-red"
+            className={`mt-2 normal-case tracking-normal ${ADMIN_FIELD}`}
           />
         </label>
 
-        <label className="mt-5 block text-xs uppercase tracking-[0.2em] text-zinc-400">
+        <label className={`mt-5 block ${ADMIN_LABEL}`}>
           Password
           <input
             type="password"
@@ -67,12 +97,15 @@ export default function AdminLoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="mt-2 w-full border border-white/15 bg-black px-3 py-2.5 text-sm text-white outline-none focus:border-nic-red"
+            className={`mt-2 normal-case tracking-normal ${ADMIN_FIELD}`}
           />
         </label>
 
         {error && (
-          <p className="mt-5 text-sm text-red-400" role="alert">
+          <p
+            role="alert"
+            className="mt-5 border-l-2 border-nic-red bg-nic-red/10 px-3 py-2 text-sm text-[#ff8a8a]"
+          >
             {error}
           </p>
         )}
@@ -80,7 +113,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={pending}
-          className="mt-8 w-full bg-nic-red py-3 text-sm font-bold uppercase tracking-[0.2em] text-white transition-opacity disabled:opacity-50"
+          className={`mt-8 w-full ${ADMIN_BTN_PRIMARY}`}
         >
           {pending ? "Signing in…" : "Sign in"}
         </button>

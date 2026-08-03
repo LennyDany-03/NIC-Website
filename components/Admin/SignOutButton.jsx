@@ -21,7 +21,7 @@ export default function SignOutButton() {
       type="button"
       onClick={handleSignOut}
       disabled={pending}
-      className="shrink-0 border border-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-nic-red hover:text-white disabled:opacity-50"
+      className="shrink-0 border border-white/15 bg-black/40 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-300 transition-colors hover:border-nic-red hover:text-white focus-visible:border-nic-red focus-visible:outline-none disabled:opacity-40"
     >
       {pending ? "Signing out…" : "Sign out"}
     </button>

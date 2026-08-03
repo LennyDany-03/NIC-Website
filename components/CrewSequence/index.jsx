@@ -917,6 +917,7 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
         if (!override) return person;
         return {
           ...person,
+          name: override.name || person.name,
           bio: override.bio || person.bio,
           photo: override.photo || person.photo,
         };
@@ -935,6 +936,7 @@ export default function CrewSequence({ framesRef, ready, autoPush = false }) {
               if (!override) return member;
               return {
                 ...member,
+                name: override.name || member.name,
                 bio: override.bio || member.bio,
                 photo: override.photo || member.photo,
                 links: { ...member.links, ...override.links },

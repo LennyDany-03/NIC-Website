@@ -12,6 +12,17 @@
 -- app/admin/dashboard/bod/page.jsx. A seat with no row here just falls
 -- back to its placeholder bio and whatever links content.js has for it.
 --
+-- `name` is who holds the seat, and it is editable because a board turns
+-- over without anyone wanting to open the codebase. Null means
+-- "unchanged", so an untouched seat still reads out of content.js.
+--
+-- There is no `role` column on purpose. A seat's designation is what the
+-- roster is ordered and grouped by — the boards are dealt in that order and
+-- the site's tags are sized for those exact strings — so it stays in
+-- content.js and the admin shows it back read-only. (If an earlier version
+-- of this file left a `role` column behind, nothing reads or writes it; it
+-- is inert and can be dropped whenever convenient.)
+--
 -- The four link columns are only surfaced in the editor for board seats —
 -- masterminds have no contact strip on the public site — but they live on
 -- every row for a uniform shape. `photo_url` points at an object in the
@@ -22,6 +33,7 @@
 
 create table if not exists public.bod_bios (
   slug text primary key,
+  name text,
   bio text not null default '',
   email text,
   instagram text,
@@ -31,6 +43,7 @@ create table if not exists public.bod_bios (
   updated_at timestamptz not null default now()
 );
 
+alter table public.bod_bios add column if not exists name text;
 alter table public.bod_bios add column if not exists email text;
 alter table public.bod_bios add column if not exists instagram text;
 alter table public.bod_bios add column if not exists linkedin text;
