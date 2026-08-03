@@ -6,6 +6,29 @@
   --color-nic-red: #ed0a14;
   --color-nic-ember: #ff3b3b;
   --color-nic-bone: #f4f4f5;
+
+  /*
+   * Genesis'26 — the symposium's own palette, and the one place on this site
+   * that is not red.
+   *
+   * The club is red everywhere else and stays red: the navbar, the footer and
+   * every section of the front page are untouched by these. An event gets its
+   * own colour the way a poster does, and the whole point of the gold is that
+   * it does not look like the rest of the building — so it is scoped to the
+   * `/genesis-26` route by nothing stronger than nobody else using it. Keep it
+   * that way; a `genesis-` colour appearing in a front-page section is the bug.
+   *
+   * Five steps, dark to bright, because gold only reads as metal if it is a
+   * ramp rather than a fill — bronze holds the edges, gold does the work, and
+   * champagne is the specular hit at the top of a letterform. `foil` in
+   * `components/Genesis26/gold.js` is those last three as a gradient.
+   */
+  --color-genesis-void: #010000;
+  --color-genesis-bronze: #484036;
+  --color-genesis-gold: #cca657;
+  --color-genesis-rich: #edc877;
+  --color-genesis-champagne: #f5eac2;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

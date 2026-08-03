@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 128" width="112" height="128" role="img" aria-label="NIC">
+  <title>NIC — Nextgen Intelligence Club</title>
+  <polygon points="56.00,4.00 4.04,34.00 4.04,94.00 56.00,124.00 107.96,94.00 107.96,34.00" fill="#050505"/>
+    <polygon points="56.00,9.00 8.37,36.50 8.37,91.50 56.00,119.00 103.63,91.50 103.63,36.50" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+    <polygon points="56.00,12.50 11.40,38.25 11.40,89.75 56.00,115.50 100.60,89.75 100.60,38.25" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+    <polygon points="56.00,16.00 14.43,40.00 14.43,88.00 56.00,112.00 97.57,88.00 97.57,40.00" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+    <polygon points="56.00,19.50 17.46,41.75 17.46,86.25 56.00,108.50 94.54,86.25 94.54,41.75" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+    <polygon points="56.00,23.00 20.49,43.50 20.49,84.50 56.00,105.00 91.51,84.50 91.51,43.50" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+    <polygon points="56.00,26.50 23.52,45.25 23.52,82.75 56.00,101.50 88.48,82.75 88.48,45.25" fill="none" stroke="#ed0a14" stroke-width="1.5"/>
+  <g transform="translate(23.83 42.74) scale(0.94) skewX(-6)" fill="#050505">
+    <path d="M0,0 H28 V58 H0 Z" transform="translate(0 0)"/>
+    <path d="M3,0 H14 L11,58 H0 Z" transform="translate(31 0)"/>
+    <path d="M24,0 H7 L0,9 V49 L7,58 H24 Z" transform="translate(48 0)"/>
+  </g>
+  <g fill="none" stroke="#ed0a14" stroke-width="0.9" stroke-linecap="square">
+    <rect x="49.5" y="32" width="13" height="7"/>
+    <path d="M52 32v-3M56 32v-3M60 32v-3M52 39v2M56 39v2M60 39v2"/>
+  </g>
+  <g transform="translate(23.83 42.74) scale(0.94) skewX(-6)" fill="#ed0a14">
+    <path d="M0,0 H9 L19,34 V0 H28 V58 H19 L9,24 V58 H0 Z" transform="translate(0 0)"/>
+    <path d="M3,0 H14 L11,58 H0 Z" transform="translate(31 0)"/>
+    <path d="M24,0 H7 L0,9 V49 L7,58 H24 V46 H10 V12 H24 Z" transform="translate(48 0)"/>
+  </g>
+  <polygon points="56.00,4.00 4.04,34.00 4.04,94.00 56.00,124.00 107.96,94.00 107.96,34.00" fill="none" stroke="#f4f4f5" stroke-width="5"/>
+</svg>
