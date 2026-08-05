@@ -1,11 +1,19 @@
 /**
- * The Modern Cyber Defence vocabulary — what `surfaces.js` is to the front page
- * and `Genesis26/gold.js` is to the symposium, scoped to one workshop.
+ * The `/events` vocabulary — what `surfaces.js` is to the front page and
+ * `Genesis26/gold.js` is to the symposium, scoped to the events segment.
  *
  * It lives here rather than in `surfaces.js` for the same reason the colours are
  * named `cyber-` rather than added to the club's palette: this is a poster, not
  * a new house style. Nothing on the front page should ever import from this
- * file, and when the workshop has run, the whole folder goes with it.
+ * file. The club stays red; the chrome around these pages stays red with it.
+ *
+ * It started as `WorkshopCyberDefence/theme.js` and moved up a level when the
+ * events index was built on it. That move is the point: an event folder is
+ * meant to be deleted whole on the day its event has run, and `/events` is not
+ * going anywhere — a permanent page reading its own vocabulary out of a folder
+ * documented as disposable is a page that breaks the day somebody does the
+ * tidying they were told to do. The workshop still owns its *content*; what it
+ * no longer owns is the light it is lit by.
  */
 
 /**
@@ -88,6 +96,43 @@ export const CYBER_HEADING = "font-cyber font-black leading-[0.95] tracking-tigh
  */
 export const CYBER_BUTTON =
   "group inline-flex items-center gap-3 border border-cyber-teal/70 bg-cyber-teal/10 px-5 py-3 font-cyber-mono text-[11px] uppercase tracking-[0.24em] text-cyber-aqua transition-all duration-300 hover:bg-cyber-teal hover:text-black focus-visible:bg-cyber-teal focus-visible:text-black focus-visible:outline-none";
+
+/**
+ * What a control you type into looks like here.
+ *
+ * The admin has `ADMIN_FIELD` and the front page has nothing, because until
+ * registration went live the only form on this site was behind a login. This is
+ * that field in the poster's palette: steel edge at rest, teal on focus, rose
+ * when it is wrong.
+ *
+ * `aria-[invalid=true]` rather than a separate error class, so the thing that
+ * colours the border is the same attribute a screen reader announces the error
+ * from — one of them cannot be set without the other, which is the point. The
+ * border is 1px and the ring is suppressed: `focus:border-cyber-teal` on a dark
+ * field is a stronger signal than the browser's outline and does not shift
+ * layout the way a ring on a tightly-packed grid does.
+ *
+ * Text is `text-base` (16px) rather than the `text-sm` most of this site's
+ * type is set in, and that is not a stylistic choice — it is the smallest size
+ * that stops iOS Safari zooming the whole page in the moment a field is
+ * focused. This is a form filled in on a phone standing up; a page that lurches
+ * larger on the first tap is not a detail to get wrong.
+ */
+export const CYBER_FIELD =
+  "w-full border border-cyber-steel/60 bg-black/50 px-4 py-3 text-base text-white outline-none transition-colors placeholder:text-zinc-600 focus:border-cyber-teal disabled:cursor-not-allowed disabled:border-cyber-steel/40 disabled:bg-black/30 disabled:text-zinc-500 aria-[invalid=true]:border-cyber-rose";
+
+/**
+ * The same field, for a `<select>`.
+ *
+ * Two differences and both are forced. `appearance-none` takes away the native
+ * arrow — the OS draws it in the OS's colour, which on Windows is a grey chevron
+ * on a grey plate and reads as broken next to teal — so the caller draws its own
+ * and `pr-11` leaves room for it. And `text-white` on the closed control does not
+ * reach the open menu: the popup is rendered by the platform, so each `<option>`
+ * has to state its own colours or a dark-themed page drops white text onto a
+ * white list. See `SelectField`, which sets them per option.
+ */
+export const CYBER_SELECT = `${CYBER_FIELD} cursor-pointer appearance-none pr-11`;
 
 /** The quiet one beside it — a link that happens to be shaped like a control. */
 export const CYBER_LINK =

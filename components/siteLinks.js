@@ -1,15 +1,39 @@
 /**
- * The page's own table of contents, stated once.
+ * Everything the club has run, is running, or is about to run — one page.
  *
- * Both the navbar and the footer are lists of the same anchors, and they were
+ * A route rather than a section, and the only entry in `NAV_LINKS` that is:
+ * `/events` is a board of events, each of which already has (or will have) a
+ * page of its own, and a front-page slide cannot hold a list that grows. It is
+ * declared above the list because the list uses it.
+ *
+ * Unlike `GENESIS_HREF` and `WORKSHOP_HREF` below, this one is permanent. The
+ * events on it come and go; the board does not.
+ */
+export const EVENTS_HREF = "/events";
+
+/**
+ * The site's table of contents, stated once.
+ *
+ * Both the navbar and the footer are lists of the same links, and they were
  * going to be maintained by different people at different times — a section
  * renamed in one and not the other is the kind of drift nobody notices until a
- * link goes nowhere. Every id here is a `Slide` id from the sections below.
+ * link goes nowhere.
+ *
+ * Every `#` entry here is a `Slide` id from the front page's sections. The one
+ * entry that is not a hash is a route, and `SectionLink` tells them apart by
+ * that leading `#` rather than by a flag — see the note there on why a route
+ * cannot go through the same branch a section does.
+ *
+ * Six links, and it wants to stay six: the desktop bar splits this list into
+ * equal halves that flank the Genesis pill (`SPLIT_AT` in `Navbar`), and an odd
+ * count leaves the two sides uneven. "Meet Us" came out when `/events` went in,
+ * which is what kept the count. The `#meet-us` slide is still there and still
+ * reachable by scrolling — it is off the *menu*, not off the page.
  */
 export const NAV_LINKS = [
   { label: "Home", href: "#top" },
-  { label: "Meet Us", href: "#meet-us" },
   { label: "Department", href: "#department" },
+  { label: "Events", href: EVENTS_HREF },
   { label: "Vision", href: "#vision" },
   { label: "Crew", href: "#masterminds" },
   { label: "Archive", href: "#archive" },
@@ -45,27 +69,28 @@ export const GENESIS_HREF = "/genesis-26";
 export const GENESIS_LABEL = "Genesis '26";
 
 /**
- * The Modern Cyber Defence workshop — 20 August 2026 — and its registration
- * page, which is a route of its own rather than a section of the event page.
+ * The Modern Cyber Defence workshop — 20 August 2026.
  *
- * Two routes because they answer two different questions and get shared
- * separately: the event page is what goes in a group chat, and the registration
- * page is what a coordinator sends to somebody who has already decided. Splitting
- * them also means the day sign-ups open, the change is one route going live and
- * not a page being rebuilt.
+ * One route, not two. There was a `/register` beside this one while sign-ups
+ * were shut, because an event page and a closed form answer different questions
+ * and get shared separately. Once registration opened there was only one
+ * question left, and a visitor who has to find a second link before they can
+ * answer it is a visitor given an extra chance to leave — so the form moved onto
+ * this route and the other one went. Anything still holding the old URL lands on
+ * the page it was trying to reach.
  *
  * Stated here with the rest of the table of contents for the reason `JOIN_HREF`
- * is: more than one place links them, and a route that moves should move in one
+ * is: more than one place links it, and a route that moves should move in one
  * edit. Deliberately not in `NAV_LINKS` — that list is the front page's
  * sections, and every href in it is a hash the smooth-scroll layer intercepts.
+ * `/events` is where this is reached from instead, which is a board built to
+ * outlive any one event on it.
  *
- * Like `GENESIS_HREF`, these are expected to be temporary. The day after the
+ * Like `GENESIS_HREF`, this is expected to be temporary. The day after the
  * workshop has run, the honest thing is to file it in the archive's ledger; at
- * that point these two constants and `components/WorkshopCyberDefence/` go
- * together.
+ * that point this constant and `components/WorkshopCyberDefence/` go together.
  */
 export const WORKSHOP_HREF = "/events/workshop-modern-cyber-defence";
-export const WORKSHOP_REGISTER_HREF = `${WORKSHOP_HREF}/register`;
 
 /**
  * Where the club itself is reached, as opposed to any one member of it.

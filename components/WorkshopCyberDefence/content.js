@@ -41,7 +41,7 @@ export const EVENT = {
      the line break, the same way the Genesis wordmark splits its year off. */
   lead: "Workshop on",
   title: "Modern Cyber Defence",
-  status: "Registration opening soon",
+  status: "Registration open",
   dateLabel: "20 August 2026",
   timeLabel: "9:00 AM – 3:00 PM",
   dayLabel: "One day, three sessions",
@@ -70,7 +70,7 @@ export const FACTS = [
   { id: "date", label: "Date", value: "20 Aug 2026" },
   { id: "time", label: "Time", value: "9 AM – 3 PM" },
   { id: "venue", label: "Venue", value: "" },
-  { id: "registration", label: "Registration", value: "Opening soon" },
+  { id: "registration", label: "Registration", value: "Open · ₹150" },
 ];
 
 /**
@@ -183,21 +183,18 @@ export const COORDINATORS = {
 };
 
 /**
- * What the registration page is currently able to say.
- *
- * The form on `/events/workshop-modern-cyber-defence/register` is a preview
- * with every field disabled, and this is the copy that has to make that read as
- * "not yet" rather than as "broken". `opensLabel` is deliberately vague because
- * the date genuinely is not set; give it a real one — "Opens 8 August" — the
- * moment it is, and the page needs no other edit.
+ * What the registration page said while it was shut.
  *
  * ---------------------------------------------------------------------------
- * FILL ME IN
+ * SUPERSEDED. Registration is open and runs in `Registration/`, which is a real
+ * four-step flow with its own `content.js`. Nothing rendered on the site reads
+ * this object any more.
  *
- *   opensLabel — when the form goes live.
- *   formHref   — if registration ends up running on a Google Form or the like,
- *                put the URL here: the register page turns its dead button into
- *                a live link to it and drops the "opening soon" notice.
+ * It is kept, along with `REGISTRATION_FIELDS` and `Register.jsx`, because the
+ * pair of them are what the closed state looked like and the club runs one of
+ * these a term — the next event that has to sit on a "not open yet" page for a
+ * fortnight has the whole thing already written. Delete both the day that stops
+ * being true.
  * ---------------------------------------------------------------------------
  */
 export const REGISTRATION = {
@@ -214,12 +211,11 @@ export const REGISTRATION = {
 };
 
 /**
- * The fields the form will ask for, previewed while it is closed.
+ * The fields the closed form previewed. Superseded — see `REGISTRATION` above.
  *
- * Kept as data rather than as markup because the point of showing a dead form
- * is that it is the real one: when registration opens, this list is what gets
- * wired to a handler, and a list that had drifted from the fields on screen
- * would make a liar of the preview.
+ * The live form asks for a different six: the class and year became dropdowns
+ * with fixed options, and phone came out because the WhatsApp group turned out
+ * to be how anybody is actually reached. `Registration/content.js` holds those.
  */
 export const REGISTRATION_FIELDS = [
   { id: "name", label: "Full name", type: "text", placeholder: "As it appears on your ID card", autoComplete: "name" },

@@ -55,9 +55,14 @@ export const ARCHIVE = {
  *
  * Add or remove freely: rows are dealt `ENTRIES_PER_SCREEN` at a time and a
  * short last screen is fine.
+ *
+ * Exported flat as well as dealt into screens, because `/events` lists the same
+ * history without the deck's four-to-a-screen arithmetic. Two copies of the
+ * club's event history would disagree within a term — this is the one, and the
+ * archive slide and the events board are two views of it.
  * ---------------------------------------------------------------------------
  */
-const ENTRIES = [
+export const ENTRIES = [
   {
     id: "prompt-odyssey-2026",
     year: "16 Jul 2026",

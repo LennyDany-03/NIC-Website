@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import CyberTicks from "./CyberTicks";
-import { CYBER_HEADING, CYBER_LABEL } from "./theme";
+import { CYBER_HEADING, CYBER_LABEL } from "../eventsTheme";
 import { HOST, POSTER } from "./content";
 import { rowFromLeft, rowFromRight } from "../motionPresets";
 

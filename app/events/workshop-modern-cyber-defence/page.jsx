@@ -1,49 +1,53 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import SmoothScroll from "@/components/SmoothScroll";
-import WorkshopCyberDefence from "@/components/WorkshopCyberDefence";
+import WorkshopRegistration from "@/components/WorkshopCyberDefence/Registration";
 import { CLUB_LINKS, NAV_LINKS } from "@/components/siteLinks";
 import { EVENT, POSTER } from "@/components/WorkshopCyberDefence/content";
+import { PAYMENT } from "@/components/WorkshopCyberDefence/Registration/content";
 
 export const metadata = {
-  title: `${EVENT.title} — NIC`,
-  description: `${EVENT.dateLabel}, ${EVENT.timeLabel}. A one-day workshop on cyber defence at SRMIST Vadapalani, run by the Nextgen Intelligence Club. Three sessions; registration opening soon.`,
+  title: `Register — ${EVENT.title} — NIC`,
+  description: `Register for the ${EVENT.dateLabel} workshop on modern cyber defence at SRMIST Vadapalani, run by the Nextgen Intelligence Club. Three sessions, ${EVENT.timeLabel}, ${PAYMENT.feeLabel}.`,
   openGraph: {
-    title: `Workshop on ${EVENT.title} — NIC`,
+    title: `Register — Workshop on ${EVENT.title}`,
     description: `${EVENT.dateLabel} · ${EVENT.timeLabel} · SRMIST Vadapalani`,
     type: "website",
-    /* The poster is the image this link was always going to be shared as — it
-       is what people have already seen on the noticeboard, and a link preview
-       that matches the paper is the one that gets recognised in a group chat. */
-    images: [{ url: POSTER.src, width: POSTER.width, height: POSTER.height, alt: POSTER.alt }],
+    images: [
+      { url: POSTER.src, width: POSTER.width, height: POSTER.height, alt: POSTER.alt },
+    ],
   },
 };
 
 /**
- * The workshop's event page — the first route under `/events`.
+ * The workshop's page, which is its registration form.
  *
- * A server component, like `/join` and `/genesis-26` and for the same reason:
- * nothing here is scrubbed against scroll, so the page itself can be static and
- * only the parts that move — the navbar, the countdown, the footer — are clients
- * in their own right. That buys the route its own `metadata`, which is what a
- * link pasted into a group chat is actually read from, and this is a link that
- * is going to be pasted into a lot of group chats.
+ * One route rather than the event page and a `/register` beside it. The split
+ * made sense while sign-ups were shut and the two answered different questions;
+ * now that they are open there is only one question, and a visitor who arrives
+ * at an event page, reads it, and then has to find a second link before they can
+ * do anything is a visitor given an extra chance to leave. Almost all of them
+ * arrive by scanning the QR on the printed poster, which is to say they have
+ * already read the page that used to be here.
  *
- * Same furniture as everywhere else and in the same order, so a visitor who
- * lands here from the poster's QR code has the whole site one tap away: the
- * navbar knows it is off the front page and addresses the sections as `/#...`,
- * and the footer does the same through the links it is handed. The poster's
- * colours and type stop at the edges of the event — the chrome stays red.
+ * The sections that page was made of are still in
+ * `components/WorkshopCyberDefence/` — `Sessions`, `ResourcePerson`,
+ * `Coordinators`, `PosterPlate` — unrendered rather than deleted. Any of them
+ * drops back in under the flow with one line if the day comes that this needs to
+ * be a page you can read as well as a page you can sign up on.
+ *
+ * A server component holding nothing but metadata, with the site's own furniture
+ * either side of the event's colour. `SmoothScroll` because every route on this
+ * site has it and a page that scrolls differently from the last one is a page
+ * that feels broken; only the flow itself is a client component.
  */
 export default function WorkshopCyberDefencePage() {
   return (
     <>
-      {/* The site scrolls with weight; a page that scrolled plainly would feel
-          like a different site. */}
       <SmoothScroll />
 
       <Navbar />
-      <WorkshopCyberDefence />
+      <WorkshopRegistration />
       <Footer navLinks={NAV_LINKS} clubLinks={CLUB_LINKS} />
     </>
   );

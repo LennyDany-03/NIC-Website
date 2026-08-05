@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import useCountdown, { splitRemaining } from "../useCountdown";
-import { CYBER_HEADING, NEON } from "./theme";
+import { CYBER_HEADING, NEON } from "../eventsTheme";
 import { EVENT, STARTS_AT_ISO, STARTS_AT_MS, UNITS } from "./content";
 
 /**

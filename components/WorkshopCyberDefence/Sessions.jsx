@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import CyberTicks from "./CyberTicks";
-import { CYBER_HEADING, CYBER_LABEL, CYBER_TILE } from "./theme";
+import { CYBER_HEADING, CYBER_LABEL, CYBER_TILE } from "../eventsTheme";
 import { EVENT, SESSIONS } from "./content";
 import { seatCard, seatRow, slideRise } from "../motionPresets";
 

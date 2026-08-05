@@ -15,7 +15,7 @@ import {
   NEON,
   SOFT_RULE,
   SPECTRUM_RULE,
-} from "./theme";
+} from "../eventsTheme";
 import { EVENT, REGISTRATION, REGISTRATION_FIELDS } from "./content";
 import { GRAIN_PLATE } from "../surfaces";
 import { WORKSHOP_HREF } from "../siteLinks";

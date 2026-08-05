@@ -21,6 +21,13 @@ import { usePathname } from "next/navigation";
  *
  * The path is read here rather than threaded down as a prop so that neither
  * list has to know which route it is being rendered on.
+ *
+ * Since `/events` joined the table of contents, one entry in those lists is not
+ * a section at all, so there is a third case above the two: a route is already
+ * the address it wants to be and passes straight through on a next/link. It has
+ * to be caught before the branch below, which prefixes a slash — `/` + `/events`
+ * is `//events`, and a browser reads that as a protocol-relative URL to a host
+ * called `events` rather than as a page on this site.
  */
 export default function SectionLink({
   href,
@@ -29,6 +36,15 @@ export default function SectionLink({
   children,
 }) {
   const onFront = usePathname() === "/";
+
+  // Not a section. Nothing to intercept and nothing to rewrite, on any route.
+  if (!href.startsWith("#")) {
+    return (
+      <Link href={href} onClick={onClick} className={className}>
+        {children}
+      </Link>
+    );
+  }
 
   if (onFront) {
     return (

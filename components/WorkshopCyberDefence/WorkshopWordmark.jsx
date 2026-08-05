@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CYBER_HEADING, NEON } from "./theme";
+import { CYBER_HEADING, NEON } from "../eventsTheme";
 import { EVENT } from "./content";
 import { slideRise } from "../motionPresets";
 

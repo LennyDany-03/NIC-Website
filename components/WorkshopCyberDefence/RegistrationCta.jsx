@@ -9,9 +9,9 @@ import {
   CYBER_LABEL,
   CYBER_LINK,
   SPECTRUM_RULE,
-} from "./theme";
+} from "../eventsTheme";
 import { REGISTRATION } from "./content";
-import { WORKSHOP_REGISTER_HREF } from "../siteLinks";
+import { WORKSHOP_HREF } from "../siteLinks";
 import { slideRise } from "../motionPresets";
 
 /**
@@ -99,7 +99,7 @@ export default function RegistrationCta() {
               </span>
             </a>
           ) : (
-            <Link href={WORKSHOP_REGISTER_HREF} className={CYBER_BUTTON}>
+            <Link href={WORKSHOP_HREF} className={CYBER_BUTTON}>
               Registration page
               <span
                 aria-hidden

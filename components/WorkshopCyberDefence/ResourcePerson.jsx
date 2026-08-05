@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { CYBER_HEADING, CYBER_LABEL, CYBER_PANEL } from "./theme";
+import { CYBER_HEADING, CYBER_LABEL, CYBER_PANEL } from "../eventsTheme";
 import { SPEAKER } from "./content";
 import { GRAIN_PLATE } from "../surfaces";
 import { rowFromLeft, rowFromRight } from "../motionPresets";

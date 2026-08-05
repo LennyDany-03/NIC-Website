@@ -9,7 +9,7 @@ import RegistrationCta from "./RegistrationCta";
 import ResourcePerson from "./ResourcePerson";
 import Sessions from "./Sessions";
 import WorkshopWordmark from "./WorkshopWordmark";
-import { CYBER_LABEL, GRID_PLATE, GRID_SIZE, SOFT_RULE } from "./theme";
+import { CYBER_LABEL, GRID_PLATE, GRID_SIZE, SOFT_RULE } from "../eventsTheme";
 import { EVENT, FACTS } from "./content";
 import { GRAIN_PLATE } from "../surfaces";
 import { slideBlock, slideRise, slideViewport } from "../motionPresets";
@@ -29,8 +29,8 @@ import { slideBlock, slideRise, slideViewport } from "../motionPresets";
  * The colour is the poster's and stops at the edges of the event: the navbar and
  * footer arrive in NIC red exactly as they do everywhere else, so this reads as
  * a poster hung in a building rather than as a different building. The type is
- * the poster's too, loaded by the route's own layout — see
- * `app/events/workshop-modern-cyber-defence/layout.jsx`.
+ * the poster's too, loaded by the segment's layout — see
+ * `app/events/layout.jsx`.
  */
 export default function WorkshopCyberDefence() {
   return (
