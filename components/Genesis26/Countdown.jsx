@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import useCountdown, { splitRemaining } from "./useCountdown";
+import useCountdown, { splitRemaining } from "../useCountdown";
 import { FOIL } from "./gold";
 import { STARTS_AT_ISO, STARTS_AT_MS, UNITS } from "./content";
 

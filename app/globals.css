@@ -29,8 +29,53 @@
   --color-genesis-rich: #edc877;
   --color-genesis-champagne: #f5eac2;
 
+  /*
+   * Modern Cyber Defence — the workshop's palette, read off its poster.
+   *
+   * Same deal as the gold above: an event gets its own colour the way a poster
+   * does, and nothing outside `/events/workshop-modern-cyber-defence` should
+   * ever wear one of these. The club stays red; the chrome around this page
+   * stays red with it.
+   *
+   * The poster is lit from two sides — magenta raking in from the top left,
+   * teal rising from the bottom — with a warm amber core where the two meet
+   * behind the crowd. So this is not one ramp but three hues held apart on
+   * purpose: teal is the working colour (labels, rules, the structure of the
+   * page), magenta/rose is the heat, and amber is the single bright step the
+   * pair resolve into. `NEON` in `components/WorkshopCyberDefence/theme.js` is
+   * that meeting, run through a headline.
+   *
+   * Void and abyss are black with a teal cast rather than true black, because
+   * true black under a teal glow reads as a dead pixel field; steel is the
+   * outline step, dark enough to sit back and cool enough not to go grey next
+   * to the teal it contains.
+   */
+  --color-cyber-void: #04090b;
+  --color-cyber-abyss: #0a1c21;
+  --color-cyber-steel: #2b4d55;
+  --color-cyber-teal: #2bb7bd;
+  --color-cyber-aqua: #8ef0e6;
+  --color-cyber-magenta: #c81f6e;
+  --color-cyber-rose: #ef5f95;
+  --color-cyber-amber: #f2b23c;
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /*
+   * The workshop's type, in the same spirit as its colour: scoped to the event
+   * and dead everywhere else.
+   *
+   * The three families are loaded by the route's own layout
+   * (`app/events/workshop-modern-cyber-defence/layout.jsx`), which is the only
+   * thing that defines `--font-orbitron` and friends. `@theme inline` keeps
+   * these as live `var()` references rather than baking a value in, so a
+   * `font-cyber` class used anywhere outside that route simply falls through to
+   * the stack behind it instead of rendering in a font that was never fetched.
+   */
+  --font-cyber: var(--font-orbitron), var(--font-geist-sans), system-ui, sans-serif;
+  --font-cyber-body: var(--font-poppins), var(--font-geist-sans), system-ui, sans-serif;
+  --font-cyber-mono: var(--font-share-tech), var(--font-geist-mono), ui-monospace, monospace;
 }
 
 /*

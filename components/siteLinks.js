@@ -45,6 +45,29 @@ export const GENESIS_HREF = "/genesis-26";
 export const GENESIS_LABEL = "Genesis '26";
 
 /**
+ * The Modern Cyber Defence workshop — 20 August 2026 — and its registration
+ * page, which is a route of its own rather than a section of the event page.
+ *
+ * Two routes because they answer two different questions and get shared
+ * separately: the event page is what goes in a group chat, and the registration
+ * page is what a coordinator sends to somebody who has already decided. Splitting
+ * them also means the day sign-ups open, the change is one route going live and
+ * not a page being rebuilt.
+ *
+ * Stated here with the rest of the table of contents for the reason `JOIN_HREF`
+ * is: more than one place links them, and a route that moves should move in one
+ * edit. Deliberately not in `NAV_LINKS` — that list is the front page's
+ * sections, and every href in it is a hash the smooth-scroll layer intercepts.
+ *
+ * Like `GENESIS_HREF`, these are expected to be temporary. The day after the
+ * workshop has run, the honest thing is to file it in the archive's ledger; at
+ * that point these two constants and `components/WorkshopCyberDefence/` go
+ * together.
+ */
+export const WORKSHOP_HREF = "/events/workshop-modern-cyber-defence";
+export const WORKSHOP_REGISTER_HREF = `${WORKSHOP_HREF}/register`;
+
+/**
  * Where the club itself is reached, as opposed to any one member of it.
  *
  * ---------------------------------------------------------------------------

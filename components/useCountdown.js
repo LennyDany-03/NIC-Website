@@ -28,6 +28,13 @@ export function splitRemaining(ms) {
 /**
  * Milliseconds until `targetMs`, or `null` for exactly one render.
  *
+ * Lives here rather than in an event's folder because two events now count down
+ * — Genesis'26 and the cyber defence workshop — and none of what follows knows
+ * or cares which. An event folder is meant to be deleted whole on the day its
+ * event has run (see `Genesis26/GoldTicks.jsx` on why a *styled* piece is copied
+ * rather than shared); a hook with no colour in it is the opposite case, and
+ * belongs beside `useIsMobile` and `useFrameSequence`.
+ *
  * The null is the same trick `useIsMobile` plays with `false`, for the same
  * reason. There is no "now" during server rendering that will still be true by
  * the time the page reaches a browser — the markup is built once and may be
