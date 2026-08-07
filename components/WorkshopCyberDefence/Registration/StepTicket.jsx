@@ -37,7 +37,7 @@ import { seatRow, slideRise } from "../../motionPresets";
  * that is not a photograph — is not in the bundle for the three steps that do
  * not use it.
  */
-export default function StepTicket({ code, values, streamLabel, proof }) {
+export default function StepTicket({ code, values, streamLabel, collegeLabel, proof }) {
   const [qr, setQr] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -55,13 +55,18 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
   /**
    * The drawn ticket, kept so it is drawn once rather than twice.
    *
-   * The upload needs the PNG and so does the download button, and `drawTicket`
-   * is a couple of hundred canvas operations against a 2400×1120 bitmap — on
-   * the phone this page is read on that is a visible pause, and spending it
-   * again for a file that is already sitting in memory would be spending it for
-   * nothing. A ref rather than state because nothing renders from it.
+   * The upload needs the image and so does the download button, and
+   * `drawTicket` is a couple of hundred canvas operations against a 2400×1120
+   * bitmap — on the phone this page is read on that is a visible pause, and
+   * spending it again for a file that is already sitting in memory would be
+   * spending it for nothing. A ref rather than state because nothing renders
+   * from it.
+   *
+   * Holds the whole `{ url, type, ext }` that `drawTicket` returns, not just
+   * the data URL: both consumers have to name a file after the format it
+   * actually came out as. See the encoding note in `ticketCanvas.js`.
    */
-  const ticketPng = useRef(null);
+  const ticketImage = useRef(null);
 
   /**
    * What a coordinator's scanner reads at the door.
@@ -81,9 +86,9 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
    *
    * Separate from the effect so the retry button can call the same thing the
    * first attempt did — a retry that goes down a different path is a retry that
-   * has not been tested. It reads `ticketPng` off the ref rather than taking it
-   * as an argument for the same reason: whatever the draw produced, both callers
-   * send the same thing.
+   * has not been tested. It reads `ticketImage` off the ref rather than taking
+   * it as an argument for the same reason: whatever the draw produced, both
+   * callers send the same thing.
    *
    * `submitRegistration` does not throw, so there is no catch here. Its failures
    * come back as `ok: false` with a message, and its partial failures as a
@@ -97,15 +102,16 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
     const result = await submitRegistration({
       values,
       streamLabel,
+      collegeLabel,
       ticketCode: code,
       proof,
-      ticketDataUrl: ticketPng.current,
+      ticketImage: ticketImage.current,
     });
 
     setSubmitState(result.ok ? "sent" : "error");
     setSubmitDetail(result.ok ? null : result.message);
     setSubmitMissing(result.missing);
-  }, [code, proof, streamLabel, values]);
+  }, [code, collegeLabel, proof, streamLabel, values]);
 
   useEffect(() => {
     if (!code) return undefined;
@@ -138,7 +144,7 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
          still saves, and `submitRegistration` records a null `ticket_path`
          rather than a broken one. */
       try {
-        ticketPng.current = await drawTicket({
+        ticketImage.current = await drawTicket({
           anchor: rootRef.current,
           qr: url,
           code,
@@ -149,7 +155,7 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
           registerNumber: values.registerNumber,
         });
       } catch {
-        ticketPng.current = null;
+        ticketImage.current = null;
       }
 
       if (live) send();
@@ -173,11 +179,12 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
 
     try {
       /* Almost always already drawn — the effect above draws it to upload it,
-         and this is the same PNG. The fallback is for the case where that draw
-         failed: pressing Download is worth one more attempt, since a canvas
-         that fell over once on a busy page may well not the second time. */
-      const dataUrl =
-        ticketPng.current ??
+         and this is the same image. The fallback is for the case where that
+         draw failed: pressing Download is worth one more attempt, since a
+         canvas that fell over once on a busy page may well not the second
+         time. */
+      const image =
+        ticketImage.current ??
         (await drawTicket({
           anchor: rootRef.current,
           qr,
@@ -189,8 +196,8 @@ export default function StepTicket({ code, values, streamLabel, proof }) {
           registerNumber: values.registerNumber,
         }));
 
-      ticketPng.current = dataUrl;
-      saveTicket(dataUrl, code);
+      ticketImage.current = image;
+      saveTicket(image, code);
     } catch {
       setSaveError("The ticket could not be saved. A screenshot works just as well.");
     } finally {

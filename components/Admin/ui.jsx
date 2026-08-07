@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { HEADING_SHADOW, LABEL_SHADOW } from "../surfaces";
 
 /**
@@ -41,6 +42,45 @@ export function PageHeading({ eyebrow, lead, accent, children }) {
         </p>
       )}
     </header>
+  );
+}
+
+/**
+ * The way back up, stated once.
+ *
+ * Every screen below the dashboard carries one, and until now each wrote its
+ * own copy of the same eight utility classes and the same nudging arrow — four
+ * copies is the point at which one of them starts drifting, and a back link
+ * that looks slightly different on one screen reads as a different kind of
+ * link.
+ *
+ * A `<Link>`, not `router.back()`. Browser history is not the same thing as
+ * the shape of this console: a coordinator who reached the register from a
+ * bookmark, or by refreshing after signing in, has a history stack that goes
+ * somewhere else entirely — usually the login page. Naming the destination
+ * means the arrow always goes where the label says.
+ *
+ * `py-3 -my-3` is the one thing here that is not obvious. Ten-pixel tracked-out
+ * mono makes a link about fifteen pixels tall, which is a fine thing to read
+ * and a poor thing to hit with a thumb — and this is the control somebody
+ * reaches for one-handed, at a door, having opened the wrong screen. The
+ * padding grows the hit area to nearly forty; the matching negative margin
+ * takes the growth back out of the layout, so nothing below it moves.
+ */
+export function BackLink({ href, children }) {
+  return (
+    <Link
+      href={href}
+      className="group -my-3 inline-flex items-center gap-2 py-3 font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500 transition-colors hover:text-white focus-visible:text-white focus-visible:outline-none"
+    >
+      <span
+        aria-hidden
+        className="transition-transform duration-300 group-hover:-translate-x-1"
+      >
+        ←
+      </span>
+      {children}
+    </Link>
   );
 }
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { LABEL_SHADOW } from "../../surfaces";
-import { PageHeading } from "../ui";
+import { BackLink, PageHeading } from "../ui";
 import { ADMIN_BTN_GHOST, ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
 
 /**
@@ -116,15 +116,7 @@ export default function Attendance({ event, adminId }) {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-14 sm:px-8 sm:py-20">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <Link
-          href="/admin/dashboard"
-          className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500 transition-colors hover:text-white"
-        >
-          <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-            ←
-          </span>
-          Dashboard
-        </Link>
+        <BackLink href="/admin/dashboard">Dashboard</BackLink>
 
         <Link
           href="/admin/dashboard/scanner"

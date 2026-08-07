@@ -124,6 +124,16 @@ on conflict (user_id) do nothing;
 -- useRegistration.js. The column is deliberately plain text and not an enum
 -- for exactly that reason.
 --
+-- `college` is the campus, on exactly the same terms — three SRM campuses in
+-- the dropdown and an "Other" that opens a box, stored as whatever came out of
+-- that (collegeLabel in useRegistration.js). It is the one column on this
+-- table that is **nullable**, and that is a migration fact rather than a
+-- design one: it was added after the register had already been open, so rows
+-- filed before it existed have no answer to give and there is no honest value
+-- to invent for them. Null means "registered before we started asking", not
+-- "did not say". Everything the form writes from now on fills it in — the
+-- field is required on the client and the step will not advance without it.
+--
 -- `proof_path` and `ticket_path` are object paths inside the bucket below,
 -- not URLs. The bucket is private, so a URL would be a signed one with an
 -- expiry baked in — storing that would mean storing a link that stops
@@ -153,6 +163,7 @@ create table if not exists public."workshop-modern-cyber-defence" (
   ticket_code text not null unique,
 
   name text not null,
+  college text,
   stream text not null,
   section text not null,
   email text not null,
@@ -189,6 +200,13 @@ create table if not exists public."workshop-modern-cyber-defence" (
 -- The generated constraint name carries the table's hyphens, so it needs
 -- quoting like the table itself.
 -- ---------------------------------------------------------------------
+
+-- The college dropdown, added to the form after the register was already
+-- taking rows. Nullable for the reason given above the table: the rows that
+-- predate it were never asked, and a `not null` here would need a default
+-- backfilled into them that no student ever said.
+alter table public."workshop-modern-cyber-defence"
+  add column if not exists college text;
 
 alter table public."workshop-modern-cyber-defence"
   add column if not exists attended_at timestamptz;

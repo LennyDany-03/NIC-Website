@@ -2,25 +2,34 @@
 
 import { motion } from "framer-motion";
 import { SelectField, TextField } from "./fields";
-import { CLASS_OPTIONS, CLASS_OTHER, SECTION_OPTIONS, YEAR_OPTIONS } from "./content";
+import {
+  CLASS_OPTIONS,
+  CLASS_OTHER,
+  COLLEGE_OPTIONS,
+  COLLEGE_OTHER,
+  SECTION_OPTIONS,
+  YEAR_OPTIONS,
+} from "./content";
 import { seatRow } from "../../motionPresets";
 
 /**
- * Step 1 — the six things the register is kept by.
+ * Step 1 — the seven things the register is kept by.
  *
  * Two columns from `sm` up and one on a phone, in the order the poster's own
- * paperwork asks for them: who, which class, which section, how to reach you,
- * which number, which year. Name and email each take the full width because a
- * name in a half-column wraps and an email address in one is unreadable at the
- * exact moment it needs checking.
+ * paperwork asks for them: who, which campus, which class, which section, how to
+ * reach you, which number, which year. Name, college and email each take the
+ * full width — a name in a half-column wraps, an email address in one is
+ * unreadable at the exact moment it needs checking, and "SRM Kattankulathur" set
+ * in a half-column select is a label that truncates on the narrowest phone.
  *
- * The "Other" box is rendered conditionally rather than disabled. A permanently
- * present field that is dead five times out of six is six people reading a
- * question that was not for them; and because it is only mounted when it is
- * required, `validateDetails` can require it without any special case.
+ * The two "Other" boxes are rendered conditionally rather than disabled. A
+ * permanently present field that is dead five times out of six is six people
+ * reading a question that was not for them; and because each is only mounted
+ * when it is required, `validateDetails` can require it without any special case.
  */
 export default function StepDetails({ values, errors, setField }) {
   const other = values.stream === CLASS_OTHER;
+  const otherCollege = values.college === COLLEGE_OTHER;
 
   return (
     <motion.div variants={seatRow} className="grid gap-5 sm:grid-cols-2 sm:gap-6">
@@ -35,6 +44,32 @@ export default function StepDetails({ values, errors, setField }) {
           autoComplete="name"
         />
       </div>
+
+      <div className="sm:col-span-2">
+        <SelectField
+          id="college"
+          label="College"
+          value={values.college}
+          onChange={setField}
+          options={COLLEGE_OPTIONS}
+          error={errors.college}
+        />
+      </div>
+
+      {otherCollege ? (
+        <div className="sm:col-span-2">
+          <TextField
+            id="collegeOther"
+            label="Which college"
+            value={values.collegeOther}
+            onChange={setField}
+            error={errors.collegeOther}
+            placeholder="College name, in full"
+            autoComplete="organization"
+            hint="Anyone outside SRM is welcome — write the college as it is on your ID card and it goes on the register as written."
+          />
+        </div>
+      ) : null}
 
       <SelectField
         id="stream"

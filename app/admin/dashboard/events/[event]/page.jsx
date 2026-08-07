@@ -14,8 +14,15 @@ import { findAdminEvent } from "@/components/Admin/events";
  * segment that names no event in the registry is a 404 rather than an empty
  * register, so a typed URL cannot render a screen that looks like an event
  * nobody signed up for.
+ *
+ * `?q=` pre-fills the register's search. It is how the scanner hands a refused
+ * ticket over — the coordinator who has just been told a payment is unchecked
+ * arrives on that student's row rather than on two hundred of them. Read here
+ * and passed down as a prop rather than read in the client with
+ * `useSearchParams`, which would put the whole register behind a Suspense
+ * boundary for one string that is known before the page renders.
  */
-export default async function AdminEventRegisterPage({ params }) {
+export default async function AdminEventRegisterPage({ params, searchParams }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,5 +35,14 @@ export default async function AdminEventRegisterPage({ params }) {
 
   if (!event) notFound();
 
-  return <Registrations event={event} />;
+  const { q } = await searchParams;
+
+  return (
+    <Registrations
+      event={event}
+      /* A repeated `?q=a&q=b` arrives as an array; one search box takes one
+         string, and the first is the one the link meant. */
+      initialQuery={typeof q === "string" ? q : Array.isArray(q) ? (q[0] ?? "") : ""}
+    />
+  );
 }

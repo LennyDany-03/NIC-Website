@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Row from "./Row";
 import { ADMITS } from "./status";
 import { LABEL_SHADOW } from "../../surfaces";
-import { PageHeading } from "../ui";
+import { BackLink, PageHeading } from "../ui";
 import { ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
 
 /**
@@ -32,13 +31,17 @@ import { ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
  * two hundred rows is how the wrong one gets confirmed at half past nine in the
  * morning. It is set in the SQL editor, and this screen shows it back.
  */
-export default function Registrations({ event }) {
+export default function Registrations({ event, initialQuery = "" }) {
   const supabase = useMemo(() => createClient(), []);
 
   const [rows, setRows] = useState([]);
   const [state, setState] = useState("loading");
   const [errorMessage, setErrorMessage] = useState(null);
-  const [query, setQuery] = useState("");
+  /* Seeded from `?q=` so the scanner can hand a refused ticket straight to the
+     row it belongs to. State rather than a controlled reading of the URL: once
+     the screen is open the search box is the coordinator's, and typing in it
+     must not be fighting a query string that never changes. */
+  const [query, setQuery] = useState(initialQuery);
   const [openId, setOpenId] = useState(null);
 
   useEffect(() => {
@@ -90,6 +93,7 @@ export default function Registrations({ event }) {
         row.name,
         row.email,
         row.register_number,
+        row.college,
         row.stream,
         row.section,
         row.year,
@@ -132,15 +136,7 @@ export default function Registrations({ event }) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-14 sm:px-8 sm:py-20">
-      <Link
-        href="/admin/dashboard/events"
-        className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500 transition-colors hover:text-white"
-      >
-        <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-          ←
-        </span>
-        All events
-      </Link>
+      <BackLink href="/admin/dashboard/events">All events</BackLink>
 
       <div className="mt-6">
         <PageHeading eyebrow={event.kind} lead={event.lead} accent={event.title}>
