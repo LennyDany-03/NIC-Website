@@ -23,6 +23,88 @@
 -- ---------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------
+-- 0. Who counts as an admin
+--
+-- Read this before the rest of the file, because every policy below is
+-- built on it.
+--
+-- The obvious way to write these policies is `to authenticated` — the way
+-- schema.sql writes them for the BOD editor. That is safe there: the bio
+-- table is public-read anyway, so an account that should not exist gains
+-- nothing by reading it. It is **not** safe here. This table holds names,
+-- email addresses, register numbers and transaction ids, and the bucket
+-- beside it holds photographs of students' banking apps.
+--
+-- `to authenticated` means "anybody Supabase Auth will issue a token for",
+-- and unless sign-ups are turned off in the dashboard (Authentication →
+-- Providers → Email → "Allow new users to sign up") that is *anybody at
+-- all*: sign up with any working inbox, confirm the mail, and the register
+-- opens. The login page says "Accounts are issued from Supabase — there is
+-- no sign-up", and this is the half of that sentence the database has to
+-- enforce for it to be true.
+--
+-- So membership is an explicit list. `is_nic_admin()` is `security definer`
+-- so that reading the list is not itself gated by the policies that depend
+-- on it, and `stable` so Postgres may call it once per statement rather
+-- than once per row.
+--
+-- ---------------------------------------------------------------------
+-- FILL ME IN — as the board changes
+--
+--   Adding an admin, once they have an account:
+--
+--     insert into public.nic_admins (user_id, email)
+--     select id, email from auth.users where email = 'them@example.com'
+--     on conflict (user_id) do nothing;
+--
+--   Removing one:  delete from public.nic_admins where email = '…';
+--   Checking:      select email from public.nic_admins;
+--
+--   An account that is not on this list can still sign in — the console's
+--   front page and the BOD editor work — but the event registers will read
+--   as empty. That is the intended failure: no error, no data.
+-- ---------------------------------------------------------------------
+
+create table if not exists public.nic_admins (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  email text,
+  added_at timestamptz not null default now()
+);
+
+alter table public.nic_admins enable row level security;
+
+create or replace function public.is_nic_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.nic_admins where user_id = auth.uid()
+  );
+$$;
+
+-- The list is readable by the people on it and by nobody else. There is no
+-- insert or update policy at all: an admin is added from the SQL editor,
+-- which is the one place that already requires a project owner's login.
+-- A table that could add to itself would be a privilege escalation with
+-- extra steps.
+drop policy if exists "Admins may read the admin list" on public.nic_admins;
+create policy "Admins may read the admin list"
+on public.nic_admins
+for select
+to authenticated
+using (public.is_nic_admin());
+
+-- Seeds the account this console was built for, so running this file does
+-- not lock its author out of the screen it creates. It is a no-op if that
+-- user does not exist — check with the `select` above after running.
+insert into public.nic_admins (user_id, email)
+select id, email from auth.users where email = 'lennydany3@gmail.com'
+on conflict (user_id) do nothing;
+
+-- ---------------------------------------------------------------------
 -- 1. The registrations table
 --
 -- One row per completed run through the four steps in
@@ -108,16 +190,24 @@ for insert
 to anon, authenticated
 with check (true);
 
--- Signed-in admins (the same ones the /admin dashboard authenticates) get
--- the whole table, including marking a payment confirmed.
+-- Admins on the list in section 0 — not every signed-in account — get the
+-- whole table, including marking a payment confirmed.
+--
+-- The old name is dropped as well as the new one, so that re-running this
+-- file over an earlier version of itself removes the `to authenticated`
+-- policy rather than leaving it in place beside this one. Postgres ORs
+-- permissive policies together: one leftover `using (true)` would make
+-- everything above pointless.
 drop policy if exists "Authenticated users manage workshop registrations"
   on public."workshop-modern-cyber-defence";
-create policy "Authenticated users manage workshop registrations"
+drop policy if exists "Admins manage workshop registrations"
+  on public."workshop-modern-cyber-defence";
+create policy "Admins manage workshop registrations"
 on public."workshop-modern-cyber-defence"
 for all
 to authenticated
-using (true)
-with check (true);
+using (public.is_nic_admin())
+with check (public.is_nic_admin());
 
 -- ---------------------------------------------------------------------
 -- 2. The verification bucket
@@ -171,27 +261,49 @@ for insert
 to anon, authenticated
 with check (bucket_id = 'workshop-modern-cyber-defence-verification');
 
+-- Reading a payment screenshot is the most sensitive thing anybody does
+-- against this project, so it is gated on the admin list rather than on
+-- being signed in. This is what makes the signed URLs in the register
+-- screen work for a coordinator and fail for everybody else.
 drop policy if exists "Authenticated users read workshop verification files"
   on storage.objects;
-create policy "Authenticated users read workshop verification files"
+drop policy if exists "Admins read workshop verification files"
+  on storage.objects;
+create policy "Admins read workshop verification files"
 on storage.objects
 for select
 to authenticated
-using (bucket_id = 'workshop-modern-cyber-defence-verification');
+using (
+  bucket_id = 'workshop-modern-cyber-defence-verification'
+  and public.is_nic_admin()
+);
 
 drop policy if exists "Authenticated users update workshop verification files"
   on storage.objects;
-create policy "Authenticated users update workshop verification files"
+drop policy if exists "Admins update workshop verification files"
+  on storage.objects;
+create policy "Admins update workshop verification files"
 on storage.objects
 for update
 to authenticated
-using (bucket_id = 'workshop-modern-cyber-defence-verification')
-with check (bucket_id = 'workshop-modern-cyber-defence-verification');
+using (
+  bucket_id = 'workshop-modern-cyber-defence-verification'
+  and public.is_nic_admin()
+)
+with check (
+  bucket_id = 'workshop-modern-cyber-defence-verification'
+  and public.is_nic_admin()
+);
 
 drop policy if exists "Authenticated users delete workshop verification files"
   on storage.objects;
-create policy "Authenticated users delete workshop verification files"
+drop policy if exists "Admins delete workshop verification files"
+  on storage.objects;
+create policy "Admins delete workshop verification files"
 on storage.objects
 for delete
 to authenticated
-using (bucket_id = 'workshop-modern-cyber-defence-verification');
+using (
+  bucket_id = 'workshop-modern-cyber-defence-verification'
+  and public.is_nic_admin()
+);
