@@ -22,7 +22,16 @@ import { seatRow, slideRise } from "../../motionPresets";
  * will not focus, an app that will not open a link, a phone with a cracked
  * camera. Three routes to the same eleven-rupee-symbol transfer.
  */
-export default function StepPayment({ values, errors, setField, proof, proofUrl, attachProof }) {
+export default function StepPayment({
+  values,
+  errors,
+  setField,
+  proof,
+  proofUrl,
+  proofStatus,
+  proofOriginalSize,
+  attachProof,
+}) {
   /*
    * The QR is drawn client-side from `PAYMENT.href`, not loaded as a static
    * image — see the note on `PAYMENT.qr` in `content.js` for why a cropped
@@ -156,9 +165,11 @@ export default function StepPayment({ values, errors, setField, proof, proofUrl,
           label="Payment screenshot"
           file={proof}
           previewUrl={proofUrl}
+          status={proofStatus}
+          originalSize={proofOriginalSize}
           onSelect={attachProof}
           error={errors.proof}
-          hint="An image under 5 MB. Check it shows the amount and the transaction ID before you attach it."
+          hint={PAYMENT.proofHint}
         />
       </motion.div>
 

@@ -168,6 +168,18 @@ export function SelectField({
 const OPTION_STYLE = { backgroundColor: "#04090b", color: "#ffffff" };
 
 /**
+ * A byte count as somebody would say it. KB below a megabyte, MB above, one
+ * decimal place only where it changes the answer — "2.4 MB" is worth the
+ * character, "2.0 MB" is not.
+ */
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+  const mb = bytes / (1024 * 1024);
+  return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1).replace(/\.0$/, "")} MB`;
+}
+
+/**
  * The screenshot.
  *
  * A real `<input type="file">` styled through the `file:` variants rather than a
@@ -180,8 +192,24 @@ const OPTION_STYLE = { backgroundColor: "#04090b", color: "#ffffff" };
  * screenshot. Showing the image back is what makes the mistake visible while it
  * is still cheap to fix.
  */
-export function FileField({ id, label, onSelect, file, previewUrl, error, hint }) {
+export function FileField({
+  id,
+  label,
+  onSelect,
+  file,
+  previewUrl,
+  error,
+  hint,
+  status = "idle",
+  originalSize,
+}) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+
+  /* Only worth printing when the compressor actually did something. A file
+     that came back the size it went in — already small, or one the compressor
+     declined — reads as its own size and nothing else; an arrow with the same
+     number on both ends is a claim to have done work that was not done. */
+  const shrunk = file && originalSize && originalSize > file.size;
 
   return (
     <motion.div variants={slideRise} className="flex min-w-0 flex-col gap-2">
@@ -218,7 +246,25 @@ export function FileField({ id, label, onSelect, file, previewUrl, error, hint }
           <p className="min-w-0 flex-1 break-words font-cyber-mono text-[11px] leading-relaxed text-zinc-500">
             {file?.name}
             <br />
-            {file ? `${Math.round(file.size / 1024)} KB` : null}
+            {/* `aria-live` because this line changes on its own a second after
+                the file was picked, with nothing the student did to prompt it.
+                "polite" so it is read at the next pause rather than cutting
+                across the field they have already moved on to. */}
+            <span aria-live="polite">
+              {status === "compressing" ? (
+                <span className="text-cyber-aqua">Shrinking…</span>
+              ) : shrunk ? (
+                <>
+                  <span className="text-zinc-600 line-through">
+                    {formatBytes(originalSize)}
+                  </span>{" "}
+                  <span aria-hidden>→</span>{" "}
+                  <span className="text-cyber-aqua">{formatBytes(file.size)}</span>
+                </>
+              ) : file ? (
+                formatBytes(file.size)
+              ) : null}
+            </span>
           </p>
         </div>
       ) : null}

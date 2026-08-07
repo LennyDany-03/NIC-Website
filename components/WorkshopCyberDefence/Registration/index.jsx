@@ -312,6 +312,7 @@ export default function WorkshopRegistration() {
                     code={registration.ticketCode}
                     values={registration.values}
                     streamLabel={registration.streamLabel}
+                    proof={registration.proof}
                   />
                 )}
               </div>

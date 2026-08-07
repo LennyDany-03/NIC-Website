@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CLASS_OTHER, TICKET_PREFIX } from "./content";
 
 /**
@@ -85,8 +85,87 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Letters and digits only — register numbers and UTRs are both. */
 const ALNUM = /^[A-Za-z0-9]+$/;
 
-/** 5 MB. Comfortably above a phone screenshot and below a phone photograph. */
+/**
+ * 5 MB, and it is the *storage* limit rather than the one a student meets.
+ *
+ * Everything picked in this form goes through `compressProof` below first, and
+ * a screenshot comes out of that at a few hundred KB — so in practice nothing
+ * ever fails this check. It stays because compression is allowed to fail
+ * (`browser-image-compression` gives up on an image it cannot decode and we
+ * keep the original rather than losing the attachment), and when it does this
+ * is the number the bucket itself enforces. Both ends state 5 MB; changing one
+ * without the other turns a friendly message into an opaque upload error.
+ */
 export const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+
+/**
+ * What the compressor is aimed at.
+ *
+ * A payment screenshot has one job — a coordinator reading a transaction ID
+ * and an amount off it — and that job survives a great deal of squeezing. The
+ * long edge is the setting that matters: a modern phone screenshots at around
+ * 2800px tall, which is roughly four times more than anybody will ever look at
+ * on this, and downscaling to 1600 does most of the work before quality is
+ * touched at all.
+ *
+ * `useWebWorker` is not a micro-optimisation here. Decoding a 12-megapixel
+ * image to a canvas allocates ~48 MB of bitmap, and doing that on the main
+ * thread of a mid-range phone freezes the page — including the file input the
+ * student just tapped — for long enough that it reads as a crash. Off the main
+ * thread the page stays live and the memory is freed with the worker.
+ *
+ * `fileType` is deliberately not set, so an image comes back as whatever it
+ * went in as. Forcing JPEG would shrink PNG screenshots further, at the cost
+ * of ringing artefacts around exactly the thing this file exists to show: small
+ * text on a flat background.
+ */
+const COMPRESSION = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1600,
+  useWebWorker: true,
+  initialQuality: 0.82,
+};
+
+/**
+ * Under this, compressing is not worth the decode.
+ *
+ * 400 KB is already a cheap upload on a phone connection, and re-encoding it
+ * would spend a second of somebody's time and a canvas the size of the image to
+ * save a rounding error — occasionally making the file *larger*, which is what
+ * happens when a small PNG of flat colour is handed to a JPEG-ish encoder.
+ */
+const COMPRESS_ABOVE_BYTES = 400 * 1024;
+
+/**
+ * Shrink a screenshot in the browser, or hand back what came in.
+ *
+ * Imported dynamically, the same way `qrcode` is on the two steps that draw
+ * one: the compressor and its worker are the largest thing this flow depends
+ * on and there is no reason for them to be in the bundle for a student who is
+ * still on step 1. The import happens the moment a file is picked, which is a
+ * beat before the result is needed.
+ *
+ * Never throws. Every failure path — an unreadable image, a worker that will
+ * not start, a browser without `createImageBitmap` — returns the original file,
+ * because a slightly-too-large screenshot that uploads is worth incomparably
+ * more than a perfectly-sized one that does not exist.
+ */
+export async function compressProof(file) {
+  if (!file?.type?.startsWith("image/")) return file;
+  if (file.size <= COMPRESS_ABOVE_BYTES) return file;
+
+  try {
+    const imageCompression = (await import("browser-image-compression")).default;
+    const compressed = await imageCompression(file, COMPRESSION);
+
+    /* The compressor is not guaranteed to win. On an image that is already
+       near-optimally encoded it can come back heavier than it went in, and
+       shipping the larger of the two would be the opposite of the point. */
+    return compressed.size < file.size ? compressed : file;
+  } catch {
+    return file;
+  }
+}
 
 /**
  * Step 1, checked.
@@ -134,7 +213,7 @@ export function validateDetails(values) {
  * one of those turns the other two away, and the cost of a too-loose rule here is
  * a coordinator squinting at a screenshot they were going to open anyway.
  */
-export function validatePayment(values, proof) {
+export function validatePayment(values, proof, proofStatus = "idle") {
   const errors = {};
   const txn = values.transactionId.trim();
 
@@ -148,6 +227,13 @@ export function validatePayment(values, proof) {
     errors.proof = "Attach the screenshot your app gave you.";
   } else if (!proof.type.startsWith("image/")) {
     errors.proof = "That is not an image — a screenshot or a photo of one.";
+  } else if (proofStatus === "compressing") {
+    /* Held rather than let through. Leaving now would carry the *original*
+       file forward — the compressor has not swapped its result in yet — and on
+       the phone photograph this check exists for, that is the upload that
+       fails at the bucket a step and a half later, by which point the ticket is
+       on screen and it is too late to say so. It is a second, at most. */
+    errors.proof = "Still shrinking that screenshot. One moment.";
   } else if (proof.size > MAX_PROOF_BYTES) {
     errors.proof = "That file is over 5 MB. A screenshot rather than a photo.";
   }
@@ -165,6 +251,24 @@ export function useRegistration() {
      every keystroke in the field next to it. */
   const [proof, setProof] = useState(null);
   const [proofUrl, setProofUrl] = useState(null);
+
+  /* "compressing" while the worker is running, so the step can say so rather
+     than leaving a student looking at a file input that has apparently
+     accepted their screenshot and done nothing with it. */
+  const [proofStatus, setProofStatus] = useState("idle");
+
+  /* What was picked, before it was shrunk — kept only to show the saving back
+     ("2.4 MB → 180 KB"). It is a number, not the file: holding the original
+     `File` alongside the compressed one to report a size would keep the whole
+     12-megapixel image alive for the rest of the session, which is the exact
+     cost the compression was there to avoid. */
+  const [proofOriginalSize, setProofOriginalSize] = useState(null);
+
+  /* Which attachment is current. Compression is async and a student who
+     notices they picked the wrong screenshot will pick another one while the
+     first is still in the worker — without this, the slower of the two wins
+     and the form ends up holding an image nobody chose. */
+  const attachSeq = useRef(0);
 
   /* Cut once, when the flow first asks for it, and kept for the life of the
      page. Generating it in render would hand out a different ticket on every
@@ -194,15 +298,51 @@ export function useRegistration() {
     });
   }, []);
 
-  const attachProof = useCallback((file) => {
+  /**
+   * Take the screenshot, show it back immediately, and shrink it behind that.
+   *
+   * The preview is deliberately raised from the file as picked rather than
+   * waiting on the compressor: seeing the image is how somebody notices they
+   * attached the wrong one, and that check should not be a second late on the
+   * device where it is most likely to be needed. What the compressor changes,
+   * when it finishes, is which `File` the upload will actually send — and the
+   * preview is re-pointed at it so the original can be released.
+   */
+  const attachProof = useCallback(async (file) => {
+    const seq = attachSeq.current + 1;
+    attachSeq.current = seq;
+
     setProof(file);
     setProofUrl(file ? URL.createObjectURL(file) : null);
+    setProofOriginalSize(file?.size ?? null);
     setErrors((prev) => {
       if (!("proof" in prev)) return prev;
       const next = { ...prev };
       delete next.proof;
       return next;
     });
+
+    if (!file) {
+      setProofStatus("idle");
+      return;
+    }
+
+    setProofStatus("compressing");
+    const compressed = await compressProof(file);
+
+    /* A newer attachment landed while this one was in the worker. Its own call
+       has already set the state; saying anything here would undo it. */
+    if (attachSeq.current !== seq) return;
+
+    /* Identity, not size: `compressProof` hands back the very same object when
+       it declined to compress or failed, and minting a second object URL for a
+       file that already has one is a leak in the shape of an optimisation. */
+    if (compressed !== file) {
+      setProof(compressed);
+      setProofUrl(URL.createObjectURL(compressed));
+    }
+
+    setProofStatus("idle");
   }, []);
 
   /**
@@ -218,7 +358,7 @@ export function useRegistration() {
         stepId === "details"
           ? validateDetails(values)
           : stepId === "payment"
-            ? validatePayment(values, proof)
+            ? validatePayment(values, proof, proofStatus)
             : {};
 
       setErrors(found);
@@ -226,7 +366,7 @@ export function useRegistration() {
       const order = stepId === "details" ? DETAIL_ORDER : PAYMENT_ORDER;
       return order.find((id) => id in found) ?? null;
     },
-    [proof, values],
+    [proof, proofStatus, values],
   );
 
   const issueTicket = useCallback(() => {
@@ -251,6 +391,8 @@ export function useRegistration() {
     errors,
     proof,
     proofUrl,
+    proofStatus,
+    proofOriginalSize,
     ticketCode,
     streamLabel,
     setField,
