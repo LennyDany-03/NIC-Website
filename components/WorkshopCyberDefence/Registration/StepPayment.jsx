@@ -33,13 +33,15 @@ export default function StepPayment({
   attachProof,
 }) {
   /*
-   * The QR is drawn client-side from `PAYMENT.href`, not loaded as a static
-   * image — see the note on `PAYMENT.qr` in `content.js` for why a cropped
-   * screenshot of the club's UPI QR was the wrong artifact here: a code saved
-   * out of an app that way carries no amount, so scanning it left the fee to
-   * whatever the person paying typed in. Encoding the same deep link the "Pay
-   * now" button uses means the QR and the button give the exact same
-   * instruction, both landing on ₹150 already filled in.
+   * The QR is drawn client-side from `PAYMENT.href`, which is the department's
+   * signed City Union Bank payload transcribed exactly — see the block comment
+   * on `SIGNED_QR` in `content.js`, which is required reading before touching
+   * anything in this component. The short version: that string is covered by a
+   * signature, so it is encoded verbatim and no amount can be added to it.
+   *
+   * Drawing it here rather than shipping the bank's PDF as an image is what
+   * keeps the code and the "Pay ₹150 now" button below it the same instruction
+   * — both carry the identical payload, amount included, so they cannot drift.
    *
    * Generated once per mount rather than memoised across the whole flow: the
    * encode is a few milliseconds and this step is only on screen at all while
@@ -111,6 +113,25 @@ export default function StepPayment({
         <p className="mt-4 font-cyber-mono text-[10px] uppercase tracking-[0.28em] text-zinc-500">
           Scan with any UPI app
         </p>
+
+        {/*
+         * The amount, immediately under the code, boxed so it is not read as a
+         * caption — and worded as something to check rather than something to
+         * do.
+         *
+         * The fee is appended to a *signed* merchant payload (see `SIGNED_QR`),
+         * which apps overwhelmingly honour but are not bound to. This line is
+         * the cheap insurance against the one silent failure that leaves: an app
+         * that drops `am` and opens on a blank field. It sits here because the
+         * moment it is needed is the moment somebody has just scanned and is
+         * looking at the amount.
+         */}
+        <p
+          role="note"
+          className="mt-5 max-w-xs border border-cyber-amber/50 bg-cyber-amber/[0.07] px-4 py-3 text-center text-xs leading-relaxed text-cyber-amber"
+        >
+          {PAYMENT.amountNote}
+        </p>
       </motion.div>
 
       {/* ------------------------------------------------------- the deep link */}
@@ -126,7 +147,9 @@ export default function StepPayment({
         </a>
 
         <p className="text-center text-xs leading-relaxed text-zinc-500">
-          Opens a UPI app on your phone. On a computer, scan the code above instead.
+          Opens a UPI app on your phone, with the department as the payee and{" "}
+          {PAYMENT.feeLabel} already filled in. On a computer, scan the code
+          above instead.
         </p>
       </motion.div>
 
@@ -136,7 +159,19 @@ export default function StepPayment({
       <motion.div variants={slideRise} className="mt-8 flex flex-col items-center gap-3">
         <span className={CYBER_LABEL}>Or pay this UPI ID</span>
         <CopyableVpa />
-        <p className="font-cyber-mono text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+
+        {/*
+         * The payee name, wrapped rather than tracked out.
+         *
+         * The club's old payee was "Lenny Dany . D" — fourteen characters, which
+         * sat happily on one line in tracked-out mono. The department's is sixty
+         * and would run off a 390px screen at that spacing, so the tracking comes
+         * down and the line is allowed to break. It is worth the space: this is
+         * the string a student checks against what their UPI app shows them
+         * before confirming, and a payee name truncated by the page is a check
+         * they cannot make.
+         */}
+        <p className="max-w-xs text-center font-cyber-mono text-[10px] uppercase leading-relaxed tracking-[0.1em] text-zinc-500">
           {PAYMENT.payeeName}
         </p>
       </motion.div>

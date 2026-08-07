@@ -10,6 +10,13 @@
  * expecting is worse than no page.
  */
 
+/* The artwork, imported so its URL carries a content hash — see `POSTER` at the
+   foot of this file for why that matters. The file stays in `public/` because
+   that is where it gets replaced from; importing it from there costs a second
+   copy of the JPEG in the build output, which is a fair price for the path
+   staying the one everybody already knows. */
+import posterFile from "../../public/posters/workshop-modern-cyber-defence.jpeg";
+
 /**
  * The instant the doors open: 20 August 2026, 9 AM, stated in IST.
  *
@@ -234,10 +241,31 @@ export const UNITS = [
   { id: "seconds", label: "Seconds" },
 ];
 
-/** The poster itself, and the size it was scanned at. */
+/**
+ * The poster itself.
+ *
+ * Imported rather than referenced by path, and that is a fix rather than a
+ * style preference. A string like `/posters/workshop-modern-cyber-defence.jpeg`
+ * is a *stable* URL: replace the file underneath it and every cache between the
+ * build and a reader's screen carries on serving what it already has. Next
+ * sends optimised images with `Cache-Control: max-age=14400`, so a poster
+ * swapped in the morning is still the old one on that browser four hours later
+ * — which is exactly what happened the first time this artwork was replaced,
+ * and it looks precisely like a change that did not save.
+ *
+ * A static import makes the emitted URL carry a hash of the file's contents, so
+ * new artwork *is* a new URL and every cache invalidates itself. It also hands
+ * back the real `width` and `height`, which stops the two numbers below from
+ * being a second thing to remember to update — they were still 1131×1600 from
+ * the first scan after the file had become 1755×2480.
+ *
+ * `.src` rather than the object, because this is read three different ways:
+ * `next/image` takes it, `PosterPlate` uses it as a plain `href` to open the
+ * full artwork, and the route's `openGraph` metadata needs a URL string.
+ */
 export const POSTER = {
-  src: "/posters/workshop-modern-cyber-defence.jpeg",
-  width: 1131,
-  height: 1600,
+  src: posterFile.src,
+  width: posterFile.width,
+  height: posterFile.height,
   alt: "Poster for the Workshop on Modern Cyber Defence, 20 August 2026, 9 AM to 3 PM, at SRM Institute of Science and Technology, Vadapalani.",
 };

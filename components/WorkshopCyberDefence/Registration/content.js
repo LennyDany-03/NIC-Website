@@ -51,51 +51,99 @@ export const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 /* ---------------------------------------------------------------- the payment */
 
 /**
- * The club's UPI details, and the deep link built from them.
+ * The department's UPI QR, transcribed exactly.
  *
- * `href` is a `upi://` intent, which is understood by every UPI app on Android
- * and by iOS's registered handlers, and by nothing at all on a desktop browser.
- * That is why the QR is the primary thing on the payment step and this link is
- * the secondary one: the person on a laptop scans with their phone, the person
- * already on their phone taps. Neither is asked to do the other's job.
+ * ---------------------------------------------------------------------------
+ * THIS STRING IS A SIGNATURE. DO NOT REFORMAT IT.
  *
- * `am` and `cu` pre-fill the amount so a fee is not retyped as ₹15 or ₹1500 by
- * somebody in a hurry. It is stated to two decimals because a bare `150` is
- * accepted by most apps and rejected by a couple of them.
+ * It is the literal payload of the City Union Bank QR issued to the Department
+ * of Basic Sciences — read off the bank's own PDF rather than retyped, and
+ * verified byte for byte by decoding that PDF's QR image.
  *
- * `aid` is carried straight from the club's own QR. It identifies the payee's
- * app registration; dropping it is harmless for the transfer but it is what the
- * QR encodes, so the link and the code stay identical.
+ * `mode=02` with `sign=` and `orgid=` makes this a *signed merchant* QR: the
+ * `sign` value is a signature over this exact URI, and a UPI app that verifies
+ * it will reject a payload that has been altered in any way. Everything that
+ * would normally be tidied up here is therefore load-bearing:
+ *
+ *   - the spaces in `pn` are real spaces, not `%20` or `+`
+ *   - the `+` inside `sign` is a literal `+`, not `%2B`
+ *   - the trailing `=` on `sign` is base64 padding, not an empty parameter
+ *   - the parameters are in this order
+ *
+ * Running this through `encodeURIComponent`, a URL builder, a formatter, or
+ * anything else that "cleans up" a URI will silently produce a QR that some
+ * apps refuse and others accept — which is the worst possible failure for a
+ * page that takes money from students.
+ *
+ * The bank's payload carries **no amount**. `am` is appended to it below.
+ * ---------------------------------------------------------------------------
  */
-const UPI = {
-  vpa: "lennydany3-2@okicici",
-  payeeName: "Lenny Dany . D",
-  aid: "uGICAgKCa1f2beg",
-  amount: "150.00",
-};
+const DEPARTMENT_QR =
+  "upi://pay?pa=EzE0104677@CUB&pn=DEPARTMENT OF BASIC SCIENCES VADAPALANI CAMPUS SRMUNIVERSITY&cu=INR&mode=02&sign=ZSPli8DuxCwxuWNdXg38I7bRGbc+YzvzpShMebtKHt4=&orgid=123456";
+
+/**
+ * The fee, fixed into the code so nobody types ₹15 or ₹1500 in a hurry.
+ *
+ * Two decimals because a bare `150` is accepted by most UPI apps and rejected
+ * by a couple of them. `cu=INR` is already in the bank's payload above, so it
+ * is not repeated here.
+ *
+ * ---------------------------------------------------------------------------
+ * A caveat worth keeping written down
+ *
+ * `DEPARTMENT_QR` is a *signed* merchant payload — `mode=02` with a `sign` over
+ * its exact contents — so appending anything means the string no longer matches
+ * what the bank signed. In practice UPI apps treat `sign` as merchant
+ * verification and still honour `am`, which is why this is safe enough to ship;
+ * but "in practice" is not "always", and the failure mode would be an app that
+ * refuses the code outright rather than one that quietly drops the amount.
+ *
+ * It is appended at the very end rather than slotted in beside `cu`, which
+ * keeps the bank's signed string intact and contiguous as a prefix — the most
+ * forgiving arrangement for anything that validates by re-reading what it was
+ * handed, and a one-line revert (`href: DEPARTMENT_QR`) if a real payment ever
+ * bounces.
+ *
+ * **Test this with one real ₹1 payment before the event**, from an actual phone
+ * and ideally from two different apps. Everything else in this flow can be
+ * fixed after the fact; a payment code that will not open cannot.
+ * ---------------------------------------------------------------------------
+ */
+const SIGNED_QR = `${DEPARTMENT_QR}&am=150.00`;
 
 export const PAYMENT = {
   fee: 150,
   feeLabel: "₹150",
-  vpa: UPI.vpa,
-  payeeName: UPI.payeeName,
-  href: `upi://pay?pa=${UPI.vpa}&pn=${encodeURIComponent(UPI.payeeName)}&aid=${UPI.aid}&am=${UPI.amount}&cu=INR`,
+
+  vpa: "EzE0104677@CUB",
+
+  /* Printed under the VPA so a student can check it against what their app
+     shows them before they confirm. Stated in the bank's own capitals rather
+     than tidied into title case for exactly that reason — this is the string
+     that will appear on their screen, and a payee name that does not match the
+     one on the page is the single best signal that something is wrong. */
+  payeeName: "DEPARTMENT OF BASIC SCIENCES VADAPALANI CAMPUS SRMUNIVERSITY",
+
+  /* Both the QR and the button use the payload verbatim. They are the same
+     instruction read two ways, which is only true while neither of them
+     rewrites it. */
+  href: SIGNED_QR,
+
+  qrAlt:
+    "UPI QR code for the Department of Basic Sciences, pre-filled for the ₹150 registration fee",
 
   /**
-   * The QR is generated from `href` above, not cropped from the app
-   * screenshot in `public/payment-qr/`.
+   * Under the code: check the number, do not just trust it.
    *
-   * It was the screenshot's crop at first, and that turned out to be a real
-   * bug rather than a placeholder detail: a static QR saved out of a UPI app
-   * carries no amount, so scanning the poster's own code opens a payment for
-   * whatever the person paying decides to type in — which is exactly the
-   * ambiguity `am=150.00` on the deep link exists to remove. Encoding `href`
-   * instead means the QR and the "Pay ₹150 now" button underneath it are the
-   * same instruction read two different ways, and both open a UPI app with
-   * ₹150 already filled in. See `StepPayment`, which draws it client-side with
-   * the `qrcode` package the ticket already depends on.
+   * Worded as a check rather than an instruction because the amount is now
+   * pre-filled and *should* already be right — but `am` is appended to a signed
+   * payload (see `SIGNED_QR`), and the one failure mode that would otherwise be
+   * silent is an app that drops it and opens on a blank amount. A student who
+   * has been told to glance at the figure catches that in a second; one who has
+   * been told the code fills it in will confirm whatever is on screen.
    */
-  qrAlt: "UPI QR code, pre-filled for the ₹150 registration fee",
+  amountNote:
+    "Your app should already show ₹150. If it shows anything else, type ₹150 in before you confirm.",
 
   proofNote: `Once it has gone through, put the transaction ID in and attach the screenshot your app gives you. That pair is what the coordinators check a payment against.`,
 
@@ -117,7 +165,7 @@ export const PAYMENT = {
 /* ------------------------------------------------------------------ the group */
 
 export const WHATSAPP = {
-  href: "https://chat.whatsapp.com/GQUXtucy3oi7Vo26f9YKol",
+  href: "https://chat.whatsapp.com/BZF82TyLmDq8SG5yTIBoev?s=sw&p=a&mlu=0",
   label: "Join on WhatsApp",
   chatName: "Modern Cyber Defence — NIC",
   chatKind: "WhatsApp group",
@@ -153,7 +201,11 @@ export const STEPS = [
     id: "payment",
     label: "Payment",
     headline: "Pay the registration fee",
-    lede: `Registration is ₹150. Scan the code with any UPI app, or tap the button below if you are reading this on your phone — it opens your app with the amount already filled in.`,
+    /* Names the amount and the payee before the code appears, because the payee
+       is no longer the club — it is the department's own account, and a student
+       who scans expecting "NIC" and sees "DEPARTMENT OF BASIC SCIENCES" should
+       have been told first. */
+    lede: `Registration is ₹150, paid to the Department of Basic Sciences. Scan the code with any UPI app, or tap the button below if you are reading this on your phone — it opens your app with the amount already filled in.`,
     next: "Continue",
   },
   {
