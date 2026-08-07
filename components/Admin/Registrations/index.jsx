@@ -31,13 +31,17 @@ import { ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
  * two hundred rows is how the wrong one gets confirmed at half past nine in the
  * morning. It is set in the SQL editor, and this screen shows it back.
  */
-export default function Registrations({ event }) {
+export default function Registrations({ event, initialQuery = "" }) {
   const supabase = useMemo(() => createClient(), []);
 
   const [rows, setRows] = useState([]);
   const [state, setState] = useState("loading");
   const [errorMessage, setErrorMessage] = useState(null);
-  const [query, setQuery] = useState("");
+  /* Seeded from `?q=` so the scanner can hand a refused ticket straight to the
+     row it belongs to. State rather than a controlled reading of the URL: once
+     the screen is open the search box is the coordinator's, and typing in it
+     must not be fighting a query string that never changes. */
+  const [query, setQuery] = useState(initialQuery);
   const [openId, setOpenId] = useState(null);
 
   useEffect(() => {
