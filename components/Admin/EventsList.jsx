@@ -1,7 +1,7 @@
 import Link from "next/link";
 import CornerTicks from "../CornerTicks";
 import { LABEL_SHADOW } from "../surfaces";
-import { PageHeading } from "./ui";
+import { BackLink, PageHeading } from "./ui";
 import { ADMIN_PANEL } from "./surfaces";
 import { ADMIN_EVENTS } from "./events";
 
@@ -25,11 +25,15 @@ import { ADMIN_EVENTS } from "./events";
 export default function EventsList() {
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-14 sm:px-8 sm:py-20">
-      <PageHeading eyebrow="NIC Admin" lead="Event" accent="Registers">
-        Who has signed up, what they paid and the screenshot they paid it with.
-        Read-only — a registration is made by the student on the event&apos;s own
-        page and this is where it arrives.
-      </PageHeading>
+      <BackLink href="/admin/dashboard">Dashboard</BackLink>
+
+      <div className="mt-6">
+        <PageHeading eyebrow="NIC Admin" lead="Event" accent="Registers">
+          Who has signed up, what they paid and the screenshot they paid it
+          with. Read-only — a registration is made by the student on the
+          event&apos;s own page and this is where it arrives.
+        </PageHeading>
+      </div>
 
       <div className="mt-10 grid gap-5 lg:grid-cols-2">
         {ADMIN_EVENTS.map((event) => (

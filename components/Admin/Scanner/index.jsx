@@ -8,7 +8,7 @@ import { PARSE_MESSAGES, parseTicketPayload } from "./ticket";
 import Verdict from "./Verdict";
 import { ADMITS } from "../Registrations/status";
 import { LABEL_SHADOW } from "../../surfaces";
-import { Eyebrow } from "../ui";
+import { BackLink, Eyebrow } from "../ui";
 import { ADMIN_BTN_GHOST, ADMIN_FIELD } from "../surfaces";
 
 /**
@@ -208,15 +208,7 @@ export default function Scanner({ event, adminId }) {
           is reached from the dashboard now, but the fix for a refusal is
           always in the register. */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <Link
-          href="/admin/dashboard"
-          className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500 transition-colors hover:text-white"
-        >
-          <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-            ←
-          </span>
-          Dashboard
-        </Link>
+        <BackLink href="/admin/dashboard">Dashboard</BackLink>
 
         <Link
           href={`/admin/dashboard/events/${event.id}`}

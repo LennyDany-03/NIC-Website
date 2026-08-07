@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Row from "./Row";
 import { ADMITS } from "./status";
 import { LABEL_SHADOW } from "../../surfaces";
-import { PageHeading } from "../ui";
+import { BackLink, PageHeading } from "../ui";
 import { ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
 
 /**
@@ -132,15 +131,7 @@ export default function Registrations({ event }) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-14 sm:px-8 sm:py-20">
-      <Link
-        href="/admin/dashboard/events"
-        className="group inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500 transition-colors hover:text-white"
-      >
-        <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">
-          ←
-        </span>
-        All events
-      </Link>
+      <BackLink href="/admin/dashboard/events">All events</BackLink>
 
       <div className="mt-6">
         <PageHeading eyebrow={event.kind} lead={event.lead} accent={event.title}>
