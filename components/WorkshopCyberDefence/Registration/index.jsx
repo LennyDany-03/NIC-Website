@@ -222,13 +222,20 @@ export default function WorkshopRegistration() {
           </div>
 
           {/*
-           * The poster, small, and a button rather than a link: it opens
+           * The poster, and a button rather than a link: it opens
            * `PosterDialog` in place instead of navigating anywhere, so a tap
            * here never costs somebody the form they are about to fill in.
-           * `CyberTicks` marks it as the same kind of object the poster plate
-           * elsewhere on the site is — a picture worth a frame — at a size
-           * that stays a supporting detail next to the headline, not a second
-           * headline of its own.
+           *
+           * It is sized per layout rather than at one size, because the two
+           * layouts ask it to do different jobs. Beside the headline from `sm`
+           * up it is a supporting detail and stays small — a second headline
+           * next to the first helps nobody. Below the text on a phone it is a
+           * block of its own with the full column to itself, and the old 112px
+           * there was not a small poster so much as an unreadable one: this
+           * artwork is dense with times, a venue and two phone numbers, and at
+           * that width none of it resolves. Somebody arriving from the printed
+           * copy needs to recognise the thing they are holding, so on a phone
+           * it gets the width to be recognised at.
            */}
           <motion.button
             type="button"
@@ -236,19 +243,29 @@ export default function WorkshopRegistration() {
             onClick={() => setPosterOpen(true)}
             className="group flex shrink-0 flex-col items-center gap-2.5"
           >
-            <span className="relative block w-28 border border-cyber-steel/60 p-1.5 transition-colors group-hover:border-cyber-teal/70 group-focus-visible:border-cyber-teal sm:w-32 lg:w-36">
+            <span className="relative block w-52 border border-cyber-steel/60 p-1.5 transition-colors group-hover:border-cyber-teal/70 group-focus-visible:border-cyber-teal sm:w-32 lg:w-36">
               <Image
                 src={POSTER.src}
                 width={POSTER.width}
                 height={POSTER.height}
                 alt={POSTER.alt}
+                /* Tells the optimiser what it is actually painting. Without it
+                   `next/image` assumes the full viewport and fetches a 640px
+                   render for a 208px slot on the layout least able to afford
+                   it. */
+                sizes="(min-width: 1024px) 144px, (min-width: 640px) 128px, 208px"
                 className="h-auto w-full"
                 priority
               />
               <CyberTicks still />
             </span>
-            <span className="font-cyber-mono text-[9px] uppercase tracking-[0.24em] text-zinc-500 transition-colors group-hover:text-cyber-aqua">
-              View full poster
+
+            {/* Brighter and a size up from the 9px zinc-500 it was. On a phone
+                this is the only thing saying the poster opens, and a caption
+                nobody can read is a caption that makes it look like a picture
+                rather than a control. */}
+            <span className="font-cyber-mono text-[10px] uppercase tracking-[0.24em] text-cyber-teal transition-colors group-hover:text-cyber-aqua sm:text-[9px] sm:text-zinc-500">
+              Tap to view full poster
             </span>
           </motion.button>
         </div>
