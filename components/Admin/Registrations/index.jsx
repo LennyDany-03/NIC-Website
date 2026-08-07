@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Row from "./Row";
+import { ADMITS } from "./status";
 import { LABEL_SHADOW } from "../../surfaces";
 import { PageHeading } from "../ui";
 import { ADMIN_FIELD, ADMIN_PANEL } from "../surfaces";
@@ -106,10 +107,28 @@ export default function Registrations({ event }) {
     () => ({
       total: rows.length,
       pending: rows.filter((row) => row.status === "pending").length,
-      confirmed: rows.filter((row) => row.status === "confirmed").length,
+      verified: rows.filter((row) => row.status === ADMITS).length,
+      admitted: rows.filter((row) => row.attended_at).length,
     }),
     [rows],
   );
+
+  /**
+   * Rewrite one row in place after its dropdown changed it.
+   *
+   * Called twice per change on a failed write — once optimistically with the
+   * new value, once again with the old one to put it back — which is why it
+   * takes the value to set rather than toggling anything itself. Matched on
+   * `ticket_code` because that is the column the update was keyed on, so the
+   * screen and the database are identifying the same row the same way.
+   */
+  const applyStatus = useCallback((row, status) => {
+    setRows((prev) =>
+      prev.map((entry) =>
+        entry.ticket_code === row.ticket_code ? { ...entry, status } : entry,
+      ),
+    );
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-14 sm:px-8 sm:py-20">
@@ -126,17 +145,18 @@ export default function Registrations({ event }) {
       <div className="mt-6">
         <PageHeading eyebrow={event.kind} lead={event.lead} accent={event.title}>
           {event.dateLabel} · {event.timeLabel}. Every seat taken through the
-          registration page, newest first, with the screenshot each one was paid
-          with.
+          registration page, newest first. Setting a row to Verified is what
+          lets its ticket through the door — the scanner is on the dashboard.
         </PageHeading>
       </div>
 
       {/* ------------------------------------------------------- the counts */}
-      <dl className="mt-10 grid grid-cols-3 gap-px overflow-hidden border border-white/10 bg-white/10">
+      <dl className="mt-10 grid grid-cols-2 gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-4">
         {[
           { label: "Registered", value: counts.total },
-          { label: "Unchecked", value: counts.pending },
-          { label: "Confirmed", value: counts.confirmed },
+          { label: "Pending", value: counts.pending },
+          { label: "Verified", value: counts.verified },
+          { label: "Admitted", value: counts.admitted },
         ].map((stat) => (
           <div key={stat.label} className="bg-black/70 px-4 py-5 backdrop-blur-md sm:px-6">
             <dt
@@ -238,7 +258,9 @@ export default function Registrations({ event }) {
                 key={row.id ?? row.ticket_code}
                 row={row}
                 bucket={event.bucket}
+                table={event.table}
                 supabase={supabase}
+                onStatusChange={applyStatus}
                 expanded={openId === (row.id ?? row.ticket_code)}
                 /* One open at a time. Two expanded rows put four signed image
                    requests in flight and push the row being read off the

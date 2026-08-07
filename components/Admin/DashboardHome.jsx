@@ -73,12 +73,18 @@ export default function DashboardHome() {
       </h2>
 
       {/*
-       * Two cards, and the pair is the whole of what this console does: it
-       * edits the roster, and it reads the registers. A grid padded out with
-       * greyed-out tiles for things that do not exist is a promise the console
-       * has not made.
+       * Three cards, and between them the whole of what this console does: it
+       * edits the roster, it reads the registers, and on the morning of an
+       * event it works the door. A grid padded out with greyed-out tiles for
+       * things that do not exist is a promise the console has not made.
+       *
+       * The scanner sits here rather than inside an event's register because
+       * of when it is used. The register is a desk screen, worked through the
+       * week before with a bank statement open beside it; the scanner is a
+       * phone screen held at a door for four hours on one morning. Reaching it
+       * should not mean going through the desk.
        */}
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-5 grid gap-5 sm:grid-cols-2">
         <ToolCard
           href="/admin/dashboard/bod"
           eyebrow="Roster"
@@ -99,6 +105,28 @@ export default function DashboardHome() {
           Who has signed up for each event the club is running, searchable by
           name, register number or ticket code, with the transaction ID and the
           payment screenshot behind every seat.
+        </ToolCard>
+
+        <ToolCard
+          href="/admin/dashboard/scanner"
+          eyebrow="Door"
+          title="Ticket scanner"
+          action="Open scanner"
+        >
+          Scan a ticket&apos;s QR on the day and mark the student in. Only a
+          registration set to Verified in the register will open — a pending or
+          failed payment is turned away at the door.
+        </ToolCard>
+
+        <ToolCard
+          href="/admin/dashboard/attendance"
+          eyebrow="Entry"
+          title="In the room"
+          action="Open the sheet"
+        >
+          The attendance sheet the scanner writes: everybody admitted so far, in
+          the order they walked in, with the time each one came through. Updates
+          itself while the door is running.
         </ToolCard>
       </div>
     </main>

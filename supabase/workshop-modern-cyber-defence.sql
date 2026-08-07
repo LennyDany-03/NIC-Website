@@ -132,10 +132,20 @@ on conflict (user_id) do nothing;
 -- not cost us the registration itself, so the row is written either way and
 -- a null path means "the file did not make it, ask them for it again".
 --
--- `status` is the coordinators' column. Nothing on the public site writes or
--- reads it — the ticket already says, in as many words, that a seat is not
--- confirmed until somebody has checked the payment by hand — it exists so
--- that checking can be recorded somewhere other than a WhatsApp scroll.
+-- `status` is the coordinators' column, and it is the one the door turns
+-- on. Nothing on the public site writes or reads it — the ticket already
+-- says, in as many words, that a seat is not confirmed until somebody has
+-- checked the payment by hand. It is set from the dropdown in the register
+-- screen, and it is what the scanner refuses on: a ticket whose row is
+-- `pending` or `failed` does not open the door, however genuine the QR code
+-- printed on it is. That is the whole point of having it.
+--
+-- `attended_at` / `attended_by` are the attendance sheet. Null means "has
+-- not walked in yet"; a timestamp is the moment a coordinator admitted them
+-- and which coordinator it was. Two columns rather than a separate table
+-- because attendance here is one bit and one instant per registration —
+-- nobody is admitted twice — and a join table for a boolean is a table to
+-- keep in step for no gain.
 -- ---------------------------------------------------------------------
 
 create table if not exists public."workshop-modern-cyber-defence" (
@@ -155,11 +165,54 @@ create table if not exists public."workshop-modern-cyber-defence" (
   ticket_path text,
 
   status text not null default 'pending'
-    check (status in ('pending', 'confirmed', 'rejected')),
+    check (status in ('pending', 'verified', 'failed')),
   notes text,
+
+  attended_at timestamptz,
+  attended_by uuid references auth.users (id),
 
   created_at timestamptz not null default now()
 );
+
+-- ---------------------------------------------------------------------
+-- Migrations for anyone who ran an earlier version of this file.
+--
+-- `create table if not exists` does nothing to a table that already
+-- exists, so every column and constraint added after the first run has to
+-- be stated again here. All of it is idempotent.
+--
+-- The status vocabulary changed from confirmed/rejected to verified/failed
+-- to match the words on the dropdown in the register. The old constraint
+-- has to come off before the rows can be rewritten — Postgres checks it on
+-- every update, including the update that is migrating away from it — and
+-- the new one goes on afterwards, by which point no row can violate it.
+-- The generated constraint name carries the table's hyphens, so it needs
+-- quoting like the table itself.
+-- ---------------------------------------------------------------------
+
+alter table public."workshop-modern-cyber-defence"
+  add column if not exists attended_at timestamptz;
+alter table public."workshop-modern-cyber-defence"
+  add column if not exists attended_by uuid references auth.users (id);
+
+alter table public."workshop-modern-cyber-defence"
+  drop constraint if exists "workshop-modern-cyber-defence_status_check";
+alter table public."workshop-modern-cyber-defence"
+  drop constraint if exists workshop_mcd_status_check;
+
+update public."workshop-modern-cyber-defence"
+   set status = 'verified' where status = 'confirmed';
+update public."workshop-modern-cyber-defence"
+   set status = 'failed' where status = 'rejected';
+
+alter table public."workshop-modern-cyber-defence"
+  add constraint workshop_mcd_status_check
+  check (status in ('pending', 'verified', 'failed'));
+
+-- The door's own lookup: the scanner reads a ticket code and asks this
+-- table one question about it. Already unique, so already indexed — this
+-- is here only to note that the scanner's query is the cheapest one in the
+-- file, which matters when it runs once per student walking through a door.
 
 -- The two lookups a coordinator actually performs: "who is this person at
 -- the door" (by the code on their phone — already covered by the unique

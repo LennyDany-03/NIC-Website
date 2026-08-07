@@ -1,5 +1,9 @@
 import { EVENT as WORKSHOP } from "../WorkshopCyberDefence/content";
-import { PAYMENT } from "../WorkshopCyberDefence/Registration/content";
+import {
+  PAYMENT,
+  TICKET_PREFIX,
+  TICKET_TAG,
+} from "../WorkshopCyberDefence/Registration/content";
 import { WORKSHOP_HREF } from "../siteLinks";
 
 /**
@@ -46,6 +50,17 @@ export const ADMIN_EVENTS = [
        way for this particular screen to be wrong. */
     table: "workshop-modern-cyber-defence",
     bucket: "workshop-modern-cyber-defence-verification",
+
+    /*
+     * What the scanner expects to find inside a ticket's QR, imported from the
+     * same file the ticket encodes it from — see the payload built in
+     * `StepTicket`. `ticketTag` is the leading field, which is how the door
+     * tells this event's ticket from another event's; `ticketPrefix` is the
+     * shape of the code itself, which is what lets a coordinator type one in by
+     * hand when a screen is too cracked or too dim to scan.
+     */
+    ticketTag: TICKET_TAG,
+    ticketPrefix: TICKET_PREFIX,
   },
 ];
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { LABEL_SHADOW } from "../../surfaces";
 import { ADMIN_BTN_GHOST } from "../surfaces";
+import { STATUSES, statusMeta } from "./status";
 
 /**
  * One registration, closed and open.
@@ -20,14 +21,28 @@ import { ADMIN_BTN_GHOST } from "../surfaces";
  * hundred hidden `<img>` tags all pointed at signed URLs is a hundred requests
  * for something nobody is looking at.
  */
-export default function Row({ row, bucket, supabase, expanded, onToggle }) {
+export default function Row({
+  row,
+  bucket,
+  supabase,
+  table,
+  expanded,
+  onToggle,
+  onStatusChange,
+}) {
   return (
-    <div className="border border-white/10 bg-black/60 transition-colors hover:border-white/20">
+    /*
+     * The row is a flex container holding the toggle and the dropdown side by
+     * side, rather than the dropdown living inside the toggle. A `<select>`
+     * nested in a `<button>` is invalid HTML and behaves like it: the click
+     * that opens the menu also collapses the row underneath it.
+     */
+    <div className="flex items-stretch border border-white/10 bg-black/60 transition-colors hover:border-white/20">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-4 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nic-red sm:px-5"
+        className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-nic-red sm:px-5"
       >
         <span
           aria-hidden
@@ -55,8 +70,22 @@ export default function Row({ row, bucket, supabase, expanded, onToggle }) {
           </span>
         </span>
 
-        <StatusTag status={row.status} />
+        {row.attended_at ? (
+          <span
+            title={`Admitted ${formatWhen(row.attended_at)}`}
+            className={`hidden shrink-0 border border-emerald-500/40 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.2em] text-emerald-400 sm:block ${LABEL_SHADOW}`}
+          >
+            In
+          </span>
+        ) : null}
       </button>
+
+      <StatusSelect
+        row={row}
+        table={table}
+        supabase={supabase}
+        onStatusChange={onStatusChange}
+      />
 
       {expanded ? (
         <Detail row={row} bucket={bucket} supabase={supabase} />
@@ -66,27 +95,101 @@ export default function Row({ row, bucket, supabase, expanded, onToggle }) {
 }
 
 /**
- * Whether a coordinator has been through this one yet.
+ * The verdict on a payment, as a control rather than a label.
  *
- * Amber for pending rather than grey, because "nobody has checked this" is the
- * state that wants doing something about — grey would file it under settled.
- * Nothing on this screen writes the column; it is set in the SQL editor, and
- * the tag is here so that when it is set, the register shows it.
+ * This is the one thing in the console that decides whether a ticket opens a
+ * door, so it is worth being clear about what it is: setting this to Verified
+ * is the act of saying "I have looked at this screenshot and the money is
+ * there". The scanner does no checking of its own — it reads this column and
+ * nothing else.
+ *
+ * It writes immediately on change rather than behind a Save button. A register
+ * is worked down one row at a time with a bank statement open beside it, and a
+ * save step per row is a step to forget on the row you were interrupted on. The
+ * cost is that a mis-click writes straight away, which is why the select shows
+ * its own state back — a moment of "Saving…" and then the new colour — instead
+ * of silently accepting.
+ *
+ * On failure the value is handed back to the parent unchanged, so the dropdown
+ * snaps back to what the database still says rather than displaying a decision
+ * that was never recorded. A door that has been told the wrong thing is the
+ * failure worth engineering against here.
  */
-function StatusTag({ status }) {
-  const tone =
-    status === "confirmed"
-      ? "border-emerald-500/50 text-emerald-400"
-      : status === "rejected"
-        ? "border-nic-red/60 text-nic-red"
-        : "border-amber-500/50 text-amber-400";
+function StatusSelect({ row, table, supabase, onStatusChange }) {
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const meta = statusMeta(row.status);
+
+  async function change(next) {
+    if (next === row.status) return;
+
+    setSaving(true);
+    setFailed(false);
+
+    /* Optimistic: the row recolours at once, and is put back if the write is
+       refused. At a desk with a register open, the alternative — a control
+       that does nothing for 300ms — reads as a control that did not register
+       the click, and gets clicked again. */
+    onStatusChange(row, next);
+
+    const { error } = await supabase
+      .from(table)
+      .update({ status: next })
+      .eq("ticket_code", row.ticket_code);
+
+    setSaving(false);
+
+    if (error) {
+      setFailed(true);
+      onStatusChange(row, row.status);
+    }
+  }
 
   return (
-    <span
-      className={`shrink-0 border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.2em] ${tone} ${LABEL_SHADOW}`}
-    >
-      {status}
-    </span>
+    <div className="flex shrink-0 flex-col justify-center border-l border-white/10 px-3 py-2">
+      <label className="sr-only" htmlFor={`status-${row.ticket_code}`}>
+        Payment status for {row.name}
+      </label>
+
+      <div className="relative">
+        <select
+          id={`status-${row.ticket_code}`}
+          value={row.status}
+          disabled={saving}
+          onChange={(event) => change(event.target.value)}
+          className={`cursor-pointer appearance-none border bg-black/70 py-1.5 pl-6 pr-7 font-mono text-[9px] uppercase tracking-[0.2em] outline-none transition-colors focus-visible:border-white disabled:cursor-wait ${meta.tag}`}
+        >
+          {STATUSES.map((status) => (
+            <option
+              key={status.value}
+              value={status.value}
+              style={{ backgroundColor: "#0a0a0a", color: "#ffffff" }}
+            >
+              {status.label}
+            </option>
+          ))}
+        </select>
+
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute left-2 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full ${meta.dot}`}
+        />
+
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-zinc-500"
+        >
+          ▼
+        </span>
+      </div>
+
+      <span
+        aria-live="polite"
+        className="mt-1 block text-center font-mono text-[8px] uppercase tracking-[0.16em] text-zinc-600"
+      >
+        {saving ? "Saving…" : failed ? <span className="text-nic-red">Failed</span> : ""}
+      </span>
+    </div>
   );
 }
 
@@ -103,6 +206,14 @@ function Detail({ row, bucket, supabase }) {
         <Fact label="Transaction / UTR" value={row.transaction_id} wrap />
         <Fact label="Amount" value={row.amount != null ? `₹${row.amount}` : "—"} />
         <Fact label="Ticket code" value={row.ticket_code} />
+        <Fact
+          label="Attendance"
+          value={
+            row.attended_at
+              ? `Admitted ${formatWhen(row.attended_at)}`
+              : "Not yet admitted"
+          }
+        />
       </dl>
 
       {row.notes ? (
