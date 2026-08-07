@@ -17,6 +17,35 @@
 /* -------------------------------------------------------------- the questions */
 
 /**
+ * Which campus somebody is walking in from.
+ *
+ * Vadapalani first because it is the campus the workshop is held on and will be
+ * most of the register; the other two are the campuses students actually travel
+ * from. `Other` is last and opens a free-text box, the same arrangement
+ * `CLASS_OPTIONS` uses below and for the same reason — the workshop is open past
+ * SRM in practice, and a dropdown that cannot express where somebody is from is
+ * a dropdown that gets a wrong answer picked out of it.
+ *
+ * Asked before the class, because the class list underneath is Vadapalani's own
+ * departmental one: knowing the campus first is what makes "Other" down there
+ * read as an answer rather than as a gap.
+ */
+export const COLLEGE_OPTIONS = [
+  "SRM Vadapalani",
+  "SRM Ramapuram",
+  "SRM Kattankulathur",
+  "Other",
+];
+
+/**
+ * The value that turns on the free-text field beside it. The same word as
+ * `CLASS_OTHER` and deliberately a separate constant: they are two dropdowns
+ * that happen to agree today, and one of them changing its wording must not
+ * silently unhook the other one's text box.
+ */
+export const COLLEGE_OTHER = "Other";
+
+/**
  * What the department calls its streams, in the order the office lists them.
  *
  * `Other` is last and is the only one that opens a second field. It exists
@@ -194,7 +223,7 @@ export const STEPS = [
     id: "details",
     label: "Details",
     headline: "Who is coming",
-    lede: `Your name as it is on your ID card, and the class the register will be checked against. Six fields, and the ticket at the end is printed from them.`,
+    lede: `Your name as it is on your ID card, and the campus and class the register will be checked against. Seven fields, and the ticket at the end is printed from them.`,
     next: "Continue to payment",
   },
   {

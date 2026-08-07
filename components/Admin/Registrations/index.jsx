@@ -89,6 +89,7 @@ export default function Registrations({ event }) {
         row.name,
         row.email,
         row.register_number,
+        row.college,
         row.stream,
         row.section,
         row.year,

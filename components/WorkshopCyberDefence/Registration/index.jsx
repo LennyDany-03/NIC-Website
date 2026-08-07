@@ -329,6 +329,7 @@ export default function WorkshopRegistration() {
                     code={registration.ticketCode}
                     values={registration.values}
                     streamLabel={registration.streamLabel}
+                    collegeLabel={registration.collegeLabel}
                     proof={registration.proof}
                   />
                 )}

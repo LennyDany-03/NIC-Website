@@ -258,6 +258,10 @@ function Detail({ id, row, bucket, supabase, onClose }) {
       <Group label="Student">
         <Fact label="Email" value={row.email} wrap />
         <Fact label="Register number" value={row.register_number} />
+        {/* Nullable in the schema — rows filed before the field existed have no
+            answer, and `Fact` already renders that as an em dash rather than as
+            a blank space that reads like a bug. */}
+        <Fact label="College" value={row.college} />
         <Fact
           label="Class"
           value={row.section ? `${row.stream} — ${row.section}` : row.stream}

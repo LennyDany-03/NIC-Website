@@ -76,16 +76,24 @@ async function dataUrlToBlob(dataUrl) {
 export async function submitRegistration({
   values,
   streamLabel,
+  collegeLabel,
   ticketCode,
   proof,
-  ticketDataUrl,
+  ticketImage,
 }) {
   const supabase = createClient();
 
   const proofPath = proof
     ? `proofs/${ticketCode}.${extensionFor(proof.type)}`
     : null;
-  const ticketPath = ticketDataUrl ? `tickets/${ticketCode}.png` : null;
+
+  /* Named and typed from what the canvas actually produced rather than from a
+     hard-coded `.png`. `drawTicket` encodes WebP where it can — a fifteenth of
+     the bytes for the same ticket — and falls back through JPEG to PNG, so the
+     extension is not knowable here. See the encoding note in ticketCanvas.js. */
+  const ticketPath = ticketImage
+    ? `tickets/${ticketCode}.${ticketImage.ext}`
+    : null;
 
   /* `upsert: false` — the code is drawn from a 32-character alphabet six
      times over and a collision is not a real risk, but if one ever happened
@@ -99,10 +107,11 @@ export async function submitRegistration({
       : Promise.resolve({ error: null }),
 
     ticketPath
-      ? dataUrlToBlob(ticketDataUrl).then((blob) =>
-          supabase.storage
-            .from(BUCKET)
-            .upload(ticketPath, blob, { upsert: false, contentType: "image/png" }),
+      ? dataUrlToBlob(ticketImage.url).then((blob) =>
+          supabase.storage.from(BUCKET).upload(ticketPath, blob, {
+            upsert: false,
+            contentType: ticketImage.type,
+          }),
         )
       : Promise.resolve({ error: null }),
   ]);
@@ -120,6 +129,10 @@ export async function submitRegistration({
   const { error } = await supabase.from(TABLE).insert({
     ticket_code: ticketCode,
     name: values.name.trim(),
+    /* Both of these are the *label*, not the raw field: "Other" is the name of
+       a text box in the form and never the name of a college or a class. See
+       `collegeLabel` / `streamLabel` in useRegistration.js. */
+    college: collegeLabel,
     stream: streamLabel,
     section: values.section,
     email: values.email.trim(),

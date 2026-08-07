@@ -1,13 +1,9 @@
 import Link from "next/link";
 import CornerTicks from "../CornerTicks";
 import { LABEL_SHADOW } from "../surfaces";
+import Pulse from "./Pulse";
 import { PageHeading } from "./ui";
 import { ADMIN_PANEL } from "./surfaces";
-import {
-  BOARDS,
-  DEFAULT_TERM,
-  MASTERMINDS,
-} from "../CrewSequence/content";
 
 /**
  * The console's front page, as a view.
@@ -15,21 +11,10 @@ import {
  * Split from the route so the page is only the two things a route should be
  * — the auth check and the data — and this is only what is drawn. It is also
  * the half that can be rendered without a session, which is the half worth
- * putting in front of a browser before shipping.
+ * putting in front of a browser before shipping. `Pulse` is the one thing on
+ * it that reads from the database, and it does its own fetching for exactly
+ * that reason: this file stays renderable with nothing behind it.
  */
-
-/**
- * What the console is looking after, counted off the roster itself rather
- * than written down here — a seat added to content.js has to change this
- * line too, or the dashboard is quietly lying about what it edits.
- */
-const ROSTER_STATS = [
-  { label: "Faculty", value: MASTERMINDS.people.length },
-  ...BOARDS.map((board) => ({
-    label: board.short,
-    value: board.terms[DEFAULT_TERM].members.length,
-  })),
-];
 
 export default function DashboardHome() {
   return (
@@ -40,29 +25,8 @@ export default function DashboardHome() {
         next time the crew section loads.
       </PageHeading>
 
-      {/* -------------------------------------------------- what's in there */}
-      {/* Hairline dividers by way of a 1px gap over a lit background, so the
-          three tiles read as one instrument rather than three boxes. */}
-      <dl className="mt-10 grid grid-cols-3 gap-px overflow-hidden border border-white/10 bg-white/10">
-        {ROSTER_STATS.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-black/70 px-4 py-5 backdrop-blur-md sm:px-6"
-          >
-            <dt
-              className={`font-mono text-[9px] uppercase tracking-[0.24em] text-zinc-500 sm:text-[10px] ${LABEL_SHADOW}`}
-            >
-              {stat.label}
-            </dt>
-            <dd className="mt-2 font-mono text-2xl font-black tracking-tight text-white sm:text-3xl">
-              {String(stat.value).padStart(2, "0")}
-              <span className="ml-1.5 align-middle text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
-                seats
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
+      {/* ------------------------------------------------ where things stand */}
+      <Pulse />
 
       {/* ---------------------------------------------------- what you can do */}
       <h2

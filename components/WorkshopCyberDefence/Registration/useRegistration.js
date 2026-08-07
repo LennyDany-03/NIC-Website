@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CLASS_OTHER, TICKET_PREFIX } from "./content";
+import { CLASS_OTHER, COLLEGE_OTHER, TICKET_PREFIX } from "./content";
 
 /**
  * The state behind the four steps: what has been typed, what is wrong with it,
@@ -21,6 +21,8 @@ import { CLASS_OTHER, TICKET_PREFIX } from "./content";
 /** The shape of the form, and the value every field starts at. */
 const EMPTY = {
   name: "",
+  college: "",
+  collegeOther: "",
   /* Labelled "Class" on screen. Named `stream` in the code because `class` is a
      reserved word and `className` means something else entirely in a JSX file. */
   stream: "",
@@ -114,27 +116,45 @@ export const MAX_PROOF_BYTES = 5 * 1024 * 1024;
  * student just tapped — for long enough that it reads as a crash. Off the main
  * thread the page stays live and the memory is freed with the worker.
  *
- * `fileType` is deliberately not set, so an image comes back as whatever it
- * went in as. Forcing JPEG would shrink PNG screenshots further, at the cost
- * of ringing artefacts around exactly the thing this file exists to show: small
- * text on a flat background.
+ * `fileType` used to be left unset, so an image came back as whatever it went
+ * in as — the note here argued, correctly, that forcing JPEG would put ringing
+ * artefacts around exactly the thing this file exists to show: small text on a
+ * flat background. WebP is the answer that objection did not have. It carries
+ * hard edges and flat colour far better than JPEG at the same size, and it
+ * fixes the case the old setting could not touch at all: a PNG screenshot,
+ * which is what an iPhone hands over, cannot be shrunk by quality at all
+ * because PNG has no quality knob — the compressor could only reach the target
+ * by throwing away resolution.
+ *
+ * `maxSizeMB` is 0.4 rather than 1 for the same reason the ticket beside it
+ * stopped being a PNG: a megabyte per registration is real storage for a
+ * picture whose entire job is letting a coordinator read an amount and a
+ * transaction ID. At 0.4 a screenshot still reads comfortably at full size.
+ * Both numbers are ceilings the compressor aims under, not targets it pads up
+ * to — a small screenshot stays small.
  */
 const COMPRESSION = {
-  maxSizeMB: 1,
+  maxSizeMB: 0.4,
   maxWidthOrHeight: 1600,
   useWebWorker: true,
   initialQuality: 0.82,
+  fileType: "image/webp",
 };
 
 /**
  * Under this, compressing is not worth the decode.
  *
- * 400 KB is already a cheap upload on a phone connection, and re-encoding it
+ * 200 KB is already a cheap upload on a phone connection, and re-encoding it
  * would spend a second of somebody's time and a canvas the size of the image to
  * save a rounding error — occasionally making the file *larger*, which is what
- * happens when a small PNG of flat colour is handed to a JPEG-ish encoder.
+ * happens when a small PNG of flat colour is handed to a lossy encoder.
+ *
+ * Halved from 400 KB along with the target above. The gap between the two
+ * numbers is the band where a file is left alone: at 400 against a 0.4 MB
+ * ceiling there was effectively no band at all, and screenshots that arrived
+ * just under the threshold sat in the bucket at four times what they needed.
  */
-const COMPRESS_ABOVE_BYTES = 400 * 1024;
+const COMPRESS_ABOVE_BYTES = 200 * 1024;
 
 /**
  * Shrink a screenshot in the browser, or hand back what came in.
@@ -178,6 +198,12 @@ export function validateDetails(values) {
   const errors = {};
 
   if (!values.name.trim()) errors.name = "Tell us your name.";
+  if (!values.college) errors.college = "Pick your college.";
+
+  if (values.college === COLLEGE_OTHER && !values.collegeOther.trim()) {
+    errors.collegeOther = "Type the college you are from.";
+  }
+
   if (!values.stream) errors.stream = "Pick your class.";
 
   if (values.stream === CLASS_OTHER && !values.streamOther.trim()) {
@@ -386,6 +412,20 @@ export function useRegistration() {
     [values.stream, values.streamOther],
   );
 
+  /**
+   * The campus as it will be filed, on exactly the same terms as `streamLabel`
+   * above: "Other" is the name of a text box, not the name of a college, and a
+   * register with fifteen rows reading "Other" has recorded the form's plumbing
+   * instead of an answer.
+   */
+  const collegeLabel = useMemo(
+    () =>
+      values.college === COLLEGE_OTHER
+        ? values.collegeOther.trim() || COLLEGE_OTHER
+        : values.college,
+    [values.college, values.collegeOther],
+  );
+
   return {
     values,
     errors,
@@ -395,6 +435,7 @@ export function useRegistration() {
     proofOriginalSize,
     ticketCode,
     streamLabel,
+    collegeLabel,
     setField,
     attachProof,
     check,
@@ -408,6 +449,8 @@ export function useRegistration() {
    happened to be assigned. */
 const DETAIL_ORDER = [
   "name",
+  "college",
+  "collegeOther",
   "stream",
   "streamOther",
   "section",
