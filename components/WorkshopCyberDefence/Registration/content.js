@@ -187,8 +187,14 @@ export const PAYMENT = {
   /* Said on screen, under the file input. The screenshot is uploaded now, and
      saying so is the point: a student who has handed over a picture of their
      banking app is owed a plain sentence about where it went. What has not
-     changed is that a seat is confirmed by a person, not by an upload. */
-  pendingNote: `The screenshot and your details are sent to the club when you reach the last step — nobody outside the coordinators can read either. A payment is still checked by hand, so treat your seat as confirmed once one of them has said so in the group.`,
+     changed is that a seat is confirmed by a person, not by an upload.
+
+     It used to say "when you reach the last step", which was true while the
+     registration was filed under the ticket on step 4. It is filed by the
+     button at the bottom of *this* step now — see useFiling.js — and a note
+     describing the old order would have somebody pressing Continue without
+     knowing it was the moment their screenshot left the phone. */
+  pendingNote: `Pressing Continue sends your details and this screenshot to the club — nobody outside the coordinators can read either. A payment is still checked by hand, so treat your seat as confirmed once one of them has said so in the group.`,
 };
 
 /* ------------------------------------------------------------------ the group */
@@ -270,23 +276,29 @@ export const TICKET = {
 };
 
 /**
- * What the line under the ticket says while the registration is being filed,
- * and afterwards.
+ * What the flow says while the registration is being filed, and afterwards.
  *
- * Four states, and the wording of the two unhappy ones is the part that took
- * the thinking. Neither is allowed to suggest the ticket is void — it is not;
- * the code was cut in the browser and is the same code either way — so both
- * describe what the *club* is missing and give the one action that fixes it,
- * which is a message in the group rather than anything on this page.
+ * Split across two screens, which is worth knowing before changing any of it.
+ * The unhappy states are read on the **payment** step, where the button that
+ * caused them still is and every field is still filled in; the two happy ones
+ * are read under the **ticket**, two steps later. That is why `failed` can say
+ * "you are not registered yet" — at the point it is shown, that is simply true,
+ * and nobody is holding a ticket it would contradict. An earlier version of
+ * this flow filed the row under the ticket and had to word the same failure
+ * around a ticket already on the screen; see the note at the top of
+ * `useFiling.js` for why it moved.
  *
- * `error` deliberately does not print the message Supabase returned. That
- * string is written for whoever is reading the logs — "duplicate key value
- * violates unique constraint" — and putting it in front of a student turns a
- * retry into a support conversation. It is shown in development only; see
- * `SaveStatus` in StepTicket.jsx.
+ * None of these print the message Supabase returned. That string is written for
+ * whoever is reading the logs — "duplicate key value violates unique
+ * constraint" — and putting it in front of a student turns a retry into a
+ * support conversation. It is shown in development only; see `FilingNotice` in
+ * index.jsx.
  */
 export const SAVE = {
-  sending: "Filing your registration with the club…",
+  /* On the button, so it is short. The sentence version has nowhere to go now
+     that the filing happens behind a control rather than under a ticket. */
+  working: "Filing…",
+
   sent: "Filed. A coordinator can see your payment against this code.",
 
   /* The row saved but a file did not. The screenshot is the one worth chasing
@@ -294,8 +306,73 @@ export const SAVE = {
      screenshot cannot be redrawn from anything. */
   partial: `Filed, but your screenshot did not upload. Send it to a coordinator in the group with the code above and you are done.`,
 
-  error: `Your ticket is valid — the code on it was made on this device. What did not go through is the copy the club keeps. Try again, or send the code above to a coordinator in the group.`,
-  retry: "Try again",
+  /* The row did not save. Read on the payment step with everything still
+     typed in, so the action is the button they just pressed — and it says
+     outright that they are not registered, because the one dangerous version
+     of this message is the one somebody skims and walks away from. */
+  failed: `That did not reach the club, so you are not registered yet. Nothing you typed has been lost — press Continue to try again. If it keeps failing, either number below the group step will sort it out.`,
+
+  /**
+   * The two ways the rate limit says no.
+   *
+   * Both are written to be read by the student it happened to, who is almost
+   * never the person the limit was aimed at — on the college wifi the whole
+   * campus shares one address, so the commonest way to meet `ip` is to be the
+   * thirteenth person in a lecture hall to register in ten minutes. So neither
+   * of these accuses anybody of anything, and both say the same two things: it
+   * is temporary, and nothing you typed has been lost.
+   *
+   * `register` is the one that is usually the person's own doing — a form
+   * submitted five times because the first four looked like they had not
+   * worked — so it is the one that points at the group, since by then a
+   * coordinator can see the rows and they cannot.
+   *
+   * The wait is stated by the step, from the number the route sends back;
+   * these are the sentences it goes around.
+   */
+  blocked: {
+    ip: `A lot of registrations have come from this network in the last few minutes — on campus wifi that is everybody else registering too, not you. Nothing you have typed is lost.`,
+    register: `This register number has been submitted several times already today. If one of them worked you are registered, and a coordinator in the group can tell you which.`,
+    /* The scope did not come back — an old response, a proxy that ate the body.
+       Says the true part of both without claiming which. */
+    unknown: `That was one attempt too many for now. Nothing you have typed is lost.`,
+  },
+};
+
+/**
+ * The two moments the flow stops and says something.
+ *
+ * A curtain between steps, not a step of its own: it plays over the panel for
+ * under two seconds and lifts itself. Each one exists because the step it
+ * introduces buries the thing that just happened — step 3 opens on a WhatsApp
+ * group, which is not the answer to "did that work?", and step 4 opens on a
+ * ticket, which is the whole point of the last four minutes and deserves more
+ * than appearing.
+ *
+ * `filed` is the honest one and it can only say what it says because the
+ * registration is genuinely written by the time it plays. It is fired from the
+ * payment step's own result — see `advance` in index.jsx — and never from the
+ * mere fact of a step changing, which is the difference between a tick that
+ * means something and a tick that is decoration.
+ */
+export const CELEBRATION = {
+  filed: {
+    mark: "check",
+    headline: "You're registered",
+    lede: "Your details and your payment screenshot are with the club.",
+    /* Shown under the headline so the code is in front of somebody twice — here
+       and on the ticket — before they are asked to remember it. */
+    codeLabel: "Your code",
+  },
+  ticket: {
+    mark: "ticket",
+    headline: "Here is your ticket",
+    lede: "Save it, and bring it on the day.",
+    codeLabel: "Your code",
+  },
+  /* Every curtain on this page can be dismissed, and says so. It is two seconds
+     and it is in the way of something somebody asked for. */
+  skip: "Tap to continue",
 };
 
 /**

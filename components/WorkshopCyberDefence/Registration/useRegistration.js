@@ -298,8 +298,15 @@ export function useRegistration() {
 
   /* Cut once, when the flow first asks for it, and kept for the life of the
      page. Generating it in render would hand out a different ticket on every
-     re-render — including the one the countdown causes every second. */
+     re-render — including the one the countdown causes every second.
+
+     Held in a ref as well as in state, and the ref is the copy that decides.
+     `issueTicket` is now called by an event handler that has to *use* the code
+     in the same tick — it files the registration with it — and a `setState` is
+     not readable until the render after it. The state exists only so the steps
+     re-render once the code is cut. */
   const [ticketCode, setTicketCode] = useState(null);
+  const issuedRef = useRef(null);
 
   /* An object URL is a document-lifetime reference to a blob: not revoking it
      keeps the whole file alive until the tab closes. Keyed on the URL rather
@@ -395,8 +402,23 @@ export function useRegistration() {
     [proof, proofStatus, values],
   );
 
+  /**
+   * The code for this registration, cutting one if there is not one yet.
+   *
+   * Idempotent and synchronous: it returns the code rather than only setting
+   * it, because the caller files the registration with it immediately and
+   * cannot wait a render to find out what it is. A student who goes back from
+   * the group step to fix a typo and comes forward again gets the same code
+   * they already have — a second one would mean two rows and one of them
+   * unreachable.
+   */
   const issueTicket = useCallback(() => {
-    setTicketCode((prev) => prev ?? `${TICKET_PREFIX}-${ticketSuffix()}`);
+    if (!issuedRef.current) {
+      issuedRef.current = `${TICKET_PREFIX}-${ticketSuffix()}`;
+      setTicketCode(issuedRef.current);
+    }
+
+    return issuedRef.current;
   }, []);
 
   /**

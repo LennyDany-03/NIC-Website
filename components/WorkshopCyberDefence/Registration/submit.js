@@ -1,7 +1,6 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { PAYMENT } from "./content";
 
 /**
  * Where a finished registration goes.
@@ -15,21 +14,31 @@ import { PAYMENT } from "./content";
  *
  * Its own module rather than the stub it replaces in `content.js`, because
  * content.js is copy and this is plumbing — the split the rest of the site
- * keeps. The step still calls one function and still passes it everything it
+ * keeps. The caller still calls one function and still passes it everything it
  * knows, which was the point of the stub in the first place.
  *
- * Written from the browser with the anon key. There is no server route in
- * front of it, and the honest consequence is that anybody who reads the
- * bundle can insert rows into this table and objects into that bucket. It is
- * the trade the BOD editor already makes on the same project: the table holds
- * no secret (it is written *to*, never read from, by `anon`), the bucket is
- * private, and a payment is confirmed by a human looking at a screenshot
- * rather than by anything this function returns. A stuffed table costs a
- * coordinator an afternoon of sorting; it does not admit anybody to the hall.
+ * ---------------------------------------------------------------------------
+ * The row goes through a route; the files do not
+ *
+ * The files are still written straight from the browser with the publishable
+ * key, and the honest consequence is the one this file has always carried:
+ * anybody who reads the bundle can put an object in that bucket. It is the
+ * trade the BOD editor already makes on the same project — the bucket is
+ * private, its size and mime types are capped by the bucket itself, and a
+ * payment is confirmed by a human looking at a screenshot rather than by
+ * anything this function returns.
+ *
+ * The *row* is no longer written that way. It goes to
+ * `/api/events/workshop-modern-cyber-defence/register`, which counts it against
+ * a per-address and a per-register-number limit before it writes anything —
+ * see `lib/rateLimit.js`. A limit counted in a bundle the person being limited
+ * downloaded is not a limit, so that counting has to happen somewhere they
+ * cannot reach, and this is the only such place on the site.
+ * ---------------------------------------------------------------------------
  */
 
-const TABLE = "workshop-modern-cyber-defence";
 const BUCKET = "workshop-modern-cyber-defence-verification";
+const ENDPOINT = "/api/events/workshop-modern-cyber-defence/register";
 
 /**
  * The extension the bucket should file an image under, taken from its MIME
@@ -56,10 +65,16 @@ async function dataUrlToBlob(dataUrl) {
 /**
  * Persist one registration.
  *
- * Returns `{ ok, missing, message }` and never throws — the caller is a
- * student looking at a ticket that has already been cut, and an exception
- * escaping into that render would take the ticket off the screen over a
- * failure that does not invalidate it.
+ * Returns `{ ok, missing, blocked, retryAfterMs, message }` and never throws —
+ * the caller is a student who has just pressed a button on a form they have
+ * spent two minutes filling in, and an exception escaping into that render
+ * would take the whole step off the screen.
+ *
+ * `blocked` is the one outcome that is neither success nor breakage: the route
+ * refused this attempt because too many have arrived from the same address or
+ * under the same register number recently. It is separated from `ok: false`
+ * because the two want opposite things said to them — a failure asks somebody
+ * to try again, and this one asks them not to.
  *
  * The order matters. Both files go up first and the row is written last, with
  * whichever paths survived: a row is the thing a coordinator works from, so it
@@ -116,44 +131,112 @@ export async function submitRegistration({
       : Promise.resolve({ error: null }),
   ]);
 
-  /* `allSettled` reports the promise, and a supabase-js call resolves with an
-     `error` property rather than rejecting — so a rejection and a resolved
-     error are both failures and both have to be checked. */
-  const failed = (result) =>
-    result.status === "rejected" || Boolean(result.value?.error);
+  /**
+   * Whether one of the two uploads did not end with the object in the bucket.
+   *
+   * Two things make this more than `Boolean(error)`.
+   *
+   * `allSettled` reports the promise, and a supabase-js call resolves with an
+   * `error` property rather than rejecting — so a rejection and a resolved
+   * error are both failures and both have to be checked.
+   *
+   * And a 409 is not a failure *here*. The paths are named after the ticket
+   * code and the uploads go up with `upsert: false`, so the second time this
+   * function runs under a code it already used — a row that was refused by the
+   * rate limit, or one that failed on the network, and then a retry — both
+   * objects come back "The resource already exists". They do exist: this very
+   * function put them there a minute ago. Counting that as missing would file
+   * the row with null paths and tell a coordinator to go and ask a student for
+   * a screenshot that is sitting in the bucket.
+   */
+  const failed = (result) => {
+    if (result.status === "rejected") return true;
+
+    const error = result.value?.error;
+    if (!error) return false;
+
+    const duplicate =
+      String(error.statusCode) === "409" ||
+      /already exists/i.test(error.message ?? "");
+
+    return !duplicate;
+  };
 
   const missing = [];
   if (failed(uploads[0])) missing.push("proof");
   if (failed(uploads[1])) missing.push("ticket");
 
-  const { error } = await supabase.from(TABLE).insert({
-    ticket_code: ticketCode,
-    name: values.name.trim(),
-    /* Both of these are the *label*, not the raw field: "Other" is the name of
-       a text box in the form and never the name of a college or a class. See
-       `collegeLabel` / `streamLabel` in useRegistration.js. */
-    college: collegeLabel,
-    stream: streamLabel,
-    section: values.section,
-    email: values.email.trim(),
-    register_number: values.registerNumber.trim(),
-    year: values.year,
-    transaction_id: values.transactionId.trim(),
-    amount: PAYMENT.fee,
-    /* Null where the object is not there, which is what the nullable columns
-       in the schema mean. A path recorded for a file that failed to upload is
-       worse than no path: it reads as a working registration right up until a
-       coordinator clicks it. */
-    proof_path: missing.includes("proof") ? null : proofPath,
-    ticket_path: missing.includes("ticket") ? null : ticketPath,
-  });
-  /* No `.select()` on purpose. Asking for the inserted row back would need a
-     select policy for `anon`, and a select policy on this table publishes
-     every attendee's email and register number. */
+  let response;
 
-  if (error) {
-    return { ok: false, missing, message: error.message };
+  try {
+    response = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ticketCode,
+        name: values.name.trim(),
+        /* Both of these are the *label*, not the raw field: "Other" is the name
+           of a text box in the form and never the name of a college or a class.
+           See `collegeLabel` / `streamLabel` in useRegistration.js. */
+        college: collegeLabel,
+        stream: streamLabel,
+        section: values.section,
+        email: values.email.trim(),
+        registerNumber: values.registerNumber.trim(),
+        year: values.year,
+        transactionId: values.transactionId.trim(),
+        /* Null where the object is not there, which is what the nullable
+           columns in the schema mean. A path recorded for a file that failed to
+           upload is worse than no path: it reads as a working registration
+           right up until a coordinator clicks it. */
+        proofPath: missing.includes("proof") ? null : proofPath,
+        ticketPath: missing.includes("ticket") ? null : ticketPath,
+      }),
+    });
+  } catch (error) {
+    /* The route was never reached — campus wifi between two lecture halls, a
+       tab that went to sleep mid-submit. Distinct from a 500, and worth saying
+       so in the message the log gets, because the two are fixed by different
+       people. */
+    return {
+      ok: false,
+      missing,
+      blocked: false,
+      retryAfterMs: 0,
+      message: error?.message ?? "The registration could not be sent.",
+    };
   }
 
-  return { ok: true, missing, message: null };
+  /* A 429 carries JSON, but so does a proxy's own error page carry HTML — and
+     `.json()` on that throws. Everything about the response after this point is
+     optional decoration on a status code that has already said what happened. */
+  const payload = await response.json().catch(() => ({}));
+
+  if (response.status === 429) {
+    return {
+      ok: false,
+      missing,
+      blocked: true,
+      /* Falls back to the `Retry-After` header when the body did not survive,
+         and to a minute when neither did — a wait this page has to name
+         somehow, and one minute is the smallest honest guess. */
+      retryAfterMs:
+        payload.retryAfterMs ??
+        Number(response.headers.get("Retry-After") ?? 60) * 1000,
+      scope: payload.scope ?? null,
+      message: null,
+    };
+  }
+
+  if (!response.ok || !payload.ok) {
+    return {
+      ok: false,
+      missing,
+      blocked: false,
+      retryAfterMs: 0,
+      message: payload.message ?? `The register refused the row (${response.status}).`,
+    };
+  }
+
+  return { ok: true, missing, blocked: false, retryAfterMs: 0, message: null };
 }

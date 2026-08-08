@@ -3,13 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import Celebration from "./Celebration";
 import CyberTicks from "../CyberTicks";
 import PosterDialog from "./PosterDialog";
 import StepDetails from "./StepDetails";
 import StepJoin from "./StepJoin";
 import StepPayment from "./StepPayment";
 import StepTicket from "./StepTicket";
-import { FLOW, STEPS } from "./content";
+import { FLOW, SAVE, STEPS } from "./content";
+import { useFiling } from "./useFiling";
 import { useRegistration } from "./useRegistration";
 import { EVENT, POSTER } from "../content";
 import {
@@ -54,12 +56,23 @@ import { slideBlock, slideRise } from "../../motionPresets";
  * and footer arrive in NIC red exactly as they do everywhere else, so this reads
  * as a poster hung in a building rather than as a different building. The type
  * is the poster's too, loaded by the segment's layout in `app/events/layout.jsx`.
+ *
+ * The registration itself is filed on the way out of step 2, not on the way
+ * into step 4 — see the note at the top of `useFiling.js`, which is the reason
+ * `advance` below is asynchronous and the reason it can refuse to move. Steps 3
+ * and 4 are then, in the strict sense, a receipt: by the time either of them is
+ * on screen the row is written and there is nothing left that can fail.
  */
 export default function WorkshopRegistration() {
   const [index, setIndex] = useState(0);
   const [posterOpen, setPosterOpen] = useState(false);
   const registration = useRegistration();
   const { check, issueTicket } = registration;
+  const filing = useFiling();
+
+  /* Which curtain is up, or null. Set at the same moment the step changes, so
+     the swap happens behind it — see `Celebration`. */
+  const [celebration, setCelebration] = useState(null);
 
   const flowRef = useRef(null);
   const headingRef = useRef(null);
@@ -112,7 +125,40 @@ export default function WorkshopRegistration() {
     headingRef.current?.focus({ preventScroll: true });
   }, [index]);
 
-  function advance() {
+  /**
+   * Move on, and play the curtain over the change.
+   *
+   * Both in one call and in this order, because the point of the curtain is
+   * that the step underneath swaps while it is covered. React batches the two
+   * into one render, so there is no frame in which the old step is visible
+   * behind a raised curtain.
+   */
+  const reveal = useCallback(
+    (kind) => {
+      setCelebration(kind);
+      setIndex((current) => Math.min(current + 1, STEPS.length - 1));
+    },
+    [],
+  );
+
+  const endCelebration = useCallback(() => setCelebration(null), []);
+
+  /**
+   * The forward button.
+   *
+   * Asynchronous because one of the four steps now does real work when it is
+   * left: step 2 files the whole registration and waits to hear back, and what
+   * it hears decides whether the flow moves at all. The other three are the
+   * same synchronous "validate, then go" they always were, and fall through to
+   * the bottom of this function.
+   */
+  async function advance() {
+    /* A second press while the first is still in the air. The button is
+       disabled during a filing, so this is the keyboard and the double-tap
+       rather than a click — and a second run would cut no new code but would
+       spend a second attempt against the register-number limit. */
+    if (filing.state === "filing") return;
+
     /* Steps 3 and 4 ask for nothing, so `check` has nothing to say about them
        and returns null — the guard is on there being a bad field, not on the
        step having a validator. */
@@ -123,10 +169,47 @@ export default function WorkshopRegistration() {
       return;
     }
 
-    /* Cut the code on the way into the last step rather than on the way out of
-       this one, so a student who goes back to fix a typo does not get a second
-       ticket for it. `issueTicket` is idempotent. */
-    if (index + 1 === last) issueTicket();
+    if (step.id === "payment") {
+      /* Already filed, and this is somebody who went back to look at their
+         screenshot and came forward again. The row exists; filing it a second
+         time would fail on the unique ticket code and turn a working
+         registration into an error message. */
+      if (filing.state === "filed") {
+        reveal("filed");
+        return;
+      }
+
+      /* Cut here rather than on the way into the last step, because the code is
+         now what the row is filed under and the row is written before either of
+         the remaining steps is reached. Idempotent, and it returns the code
+         rather than only setting it — the filing needs it in this same tick. */
+      const code = issueTicket();
+
+      const result = await filing.file({
+        /* Any element inside the `/events` layout. `drawTicket` reads the font
+           custom properties off it and nothing else — see `familiesFrom` in
+           ticketCanvas.js. */
+        anchor: flowRef.current,
+        code,
+        values: registration.values,
+        streamLabel: registration.streamLabel,
+        collegeLabel: registration.collegeLabel,
+        proof: registration.proof,
+      });
+
+      /* Refused or broken. Stay exactly where we are, with every field still
+         filled in — `FilingNotice` below is now saying which of the two it was
+         and what to do about it. */
+      if (!result.ok) return;
+
+      reveal("filed");
+      return;
+    }
+
+    if (step.id === "group") {
+      reveal("ticket");
+      return;
+    }
 
     goTo(Math.min(index + 1, last));
   }
@@ -329,66 +412,190 @@ export default function WorkshopRegistration() {
                     code={registration.ticketCode}
                     values={registration.values}
                     streamLabel={registration.streamLabel}
-                    collegeLabel={registration.collegeLabel}
-                    proof={registration.proof}
+                    qr={filing.qr}
+                    ticketImage={filing.ticketImage}
+                    missing={filing.missing}
                   />
                 )}
               </div>
 
               {/* ------------------------------------------------ the controls */}
               {step.next ? (
-                <motion.div
-                  variants={slideRise}
-                  className="mt-9 flex flex-col-reverse gap-4 sm:mt-10 sm:flex-row-reverse sm:items-center sm:justify-between"
-                >
-                  {/*
-                   * Enabled whatever state the form is in, and it explains itself
-                   * when pressed. A Next button that greys out until every field
-                   * is right is a button that tells somebody they are stuck
-                   * without telling them where — and on a form with a dropdown
-                   * that reveals a seventh field, "where" is not obvious.
-                   *
-                   * Full width on a phone: a control this important should be
-                   * the widest, easiest thing to hit on the screen it is filled
-                   * in on, not a button sized for a mouse.
-                   */}
-                  <button
-                    type="button"
-                    onClick={advance}
-                    className={`${CYBER_BUTTON} w-full justify-center sm:w-auto`}
-                  >
-                    {step.next}
-                    <span
-                      aria-hidden
-                      className="transition-transform duration-300 group-hover:translate-x-1"
-                    >
-                      →
-                    </span>
-                  </button>
+                <motion.div variants={slideRise} className="mt-9 sm:mt-10">
+                  <FilingNotice
+                    state={filing.state}
+                    scope={filing.scope}
+                    blockedUntil={filing.blockedUntil}
+                    detail={filing.detail}
+                  />
 
-                  {index > 0 ? (
+                  <div className="flex flex-col-reverse gap-4 sm:flex-row-reverse sm:items-center sm:justify-between">
+                    {/*
+                     * Enabled whatever state the form is in, and it explains
+                     * itself when pressed. A Next button that greys out until
+                     * every field is right is a button that tells somebody they
+                     * are stuck without telling them where — and on a form with
+                     * a dropdown that reveals a seventh field, "where" is not
+                     * obvious.
+                     *
+                     * The one exception is the second and a half it is actually
+                     * doing something: a filing in flight is the single state
+                     * where a second press has a cost, since the row would be
+                     * refused and the attempt still counted against the
+                     * register number's budget. So it greys out only there, and
+                     * it says what it is doing while it does.
+                     *
+                     * Full width on a phone: a control this important should be
+                     * the widest, easiest thing to hit on the screen it is
+                     * filled in on, not a button sized for a mouse.
+                     */}
                     <button
                       type="button"
-                      onClick={() => goTo(index - 1)}
-                      className={`${CYBER_LINK} justify-center sm:justify-start`}
+                      onClick={advance}
+                      disabled={filing.state === "filing"}
+                      aria-busy={filing.state === "filing"}
+                      className={`${CYBER_BUTTON} w-full justify-center disabled:cursor-wait disabled:border-cyber-steel/50 disabled:bg-transparent disabled:text-zinc-500 disabled:hover:bg-transparent disabled:hover:text-zinc-500 sm:w-auto`}
                     >
+                      {filing.state === "filing" ? SAVE.working : step.next}
                       <span
                         aria-hidden
-                        className="transition-transform duration-300 group-hover:-translate-x-1"
+                        className={
+                          filing.state === "filing"
+                            ? "h-1.5 w-1.5 animate-pulse rounded-full bg-current"
+                            : "transition-transform duration-300 group-hover:translate-x-1"
+                        }
                       >
-                        ←
+                        {filing.state === "filing" ? null : "→"}
                       </span>
-                      Back
                     </button>
-                  ) : null}
+
+                    {/*
+                     * Back disappears the moment the row is filed, which is the
+                     * only honest thing for it to do. Everything behind it is
+                     * now a copy of something the club already has: a student
+                     * who went back, changed their section and came forward
+                     * again would be editing a form that no longer writes
+                     * anywhere, and the page would have quietly agreed with
+                     * them. The step they land on instead has both
+                     * coordinators' numbers on it, which is what actually fixes
+                     * a wrong field at this point.
+                     */}
+                    {index > 0 && filing.state !== "filed" ? (
+                      <button
+                        type="button"
+                        onClick={() => goTo(index - 1)}
+                        className={`${CYBER_LINK} justify-center sm:justify-start`}
+                      >
+                        <span
+                          aria-hidden
+                          className="transition-transform duration-300 group-hover:-translate-x-1"
+                        >
+                          ←
+                        </span>
+                        Back
+                      </button>
+                    ) : null}
+                  </div>
                 </motion.div>
               ) : null}
             </motion.div>
           </div>
         </div>
       </section>
+
+      <Celebration
+        kind={celebration}
+        code={registration.ticketCode}
+        onDone={endCelebration}
+      />
     </main>
   );
+}
+
+/**
+ * Why the flow did not move.
+ *
+ * Only ever seen on the payment step, and only in the two states that keep
+ * somebody there: the limit refused this attempt, or the row did not save. Both
+ * are rendered above the button that caused them rather than below it, because
+ * the button is at the bottom of a long panel on a phone and a message under it
+ * is a message under the fold.
+ *
+ * `role="alert"` here, unlike the polite region under the ticket. This one is
+ * an interruption by definition — somebody pressed a button expecting to move
+ * on and did not — and it is the one thing on the screen they need told
+ * without waiting for a natural pause.
+ */
+function FilingNotice({ state, scope, blockedUntil, detail }) {
+  /* Re-rendered once a second while a block is counting down, and not at all
+     otherwise. `Date.now()` in a render is a value that goes stale silently, so
+     the ticking is explicit: a clock that reads "try again in 3 minutes" for
+     four minutes is worse than no clock. */
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (state !== "blocked") return undefined;
+
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [state, blockedUntil]);
+
+  if (state !== "blocked" && state !== "error") return null;
+
+  const blocked = state === "blocked";
+  const remaining = blocked ? Math.max(0, blockedUntil - now) : 0;
+
+  return (
+    <div
+      role="alert"
+      className={`mb-7 border-l-2 pl-4 ${
+        blocked
+          ? "border-cyber-amber/70 text-cyber-amber"
+          : "border-cyber-rose/70 text-cyber-rose"
+      }`}
+    >
+      <p className="text-xs leading-relaxed">
+        {blocked ? (SAVE.blocked[scope] ?? SAVE.blocked.unknown) : SAVE.failed}
+      </p>
+
+      {blocked ? (
+        <p className="mt-2 font-cyber-mono text-[10px] uppercase tracking-[0.24em] text-zinc-500">
+          {remaining > 0 ? `Try again in ${countdown(remaining)}` : "You can try again now"}
+        </p>
+      ) : null}
+
+      {/*
+       * The raw message from the route, in development only. It is the fastest
+       * way to tell "the SQL file has not been run against this project" apart
+       * from "the key is wrong" while this is being built, and it is exactly
+       * the string a student should never be shown — see the note on `SAVE`.
+       */}
+      {detail && process.env.NODE_ENV !== "production" ? (
+        <p className="mt-2 font-cyber-mono text-[10px] leading-relaxed text-zinc-600">
+          {detail}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * A wait, in the units somebody actually thinks in.
+ *
+ * Rounded *up*, always. A countdown that rounds down says "1 minute" for the
+ * last ninety seconds of a wait and then refuses the attempt it invited, which
+ * costs somebody a retry against the very limit they are waiting out.
+ */
+function countdown(ms) {
+  const seconds = Math.ceil(ms / 1000);
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+  const hours = Math.ceil(minutes / 60);
+  return `${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
 /**

@@ -251,8 +251,16 @@ alter table public."workshop-modern-cyber-defence" enable row level security;
 -- this: the table holds names, email addresses, register numbers and
 -- transaction ids, and a public read policy would publish the whole
 -- attendee list to anybody who opened the network tab. The client never
--- reads back — submit.js calls .insert() without .select() precisely so it
+-- reads back — the route calls .insert() without .select() precisely so it
 -- does not need a representation returned.
+--
+-- The row itself is no longer written by the browser. It goes through
+-- /api/events/workshop-modern-cyber-defence/register, which counts it
+-- against a per-address and a per-register-number limit first. This policy
+-- is what that route writes under while the deployment has no secret key,
+-- and it is also the hole the limit does not cover: a script can still
+-- insert here directly and never touch the route. See section 3 at the
+-- bottom of this file for closing that.
 drop policy if exists "Anyone may register for the cyber defence workshop"
   on public."workshop-modern-cyber-defence";
 create policy "Anyone may register for the cyber defence workshop"
@@ -378,3 +386,49 @@ using (
   bucket_id = 'workshop-modern-cyber-defence-verification'
   and public.is_nic_admin()
 );
+
+-- ---------------------------------------------------------------------
+-- 3. Optional: making the rate limit a wall rather than a speed bump
+--
+-- DO NOT RUN THIS SECTION YET. Read the two steps first — the order
+-- matters and getting it wrong takes registration off the site.
+--
+-- Everything above this line leaves `anon` able to insert into the
+-- registrations table directly. That is what the route writes under
+-- today, and it is also what a script can use to skip the route and
+-- therefore skip the two limits in lib/rateLimit.js entirely. The limits
+-- are real for the form; they are not real for the table.
+--
+-- Closing that takes two changes, in this order:
+--
+--   1. Put a Supabase **secret** key into the deployment's environment as
+--      SUPABASE_SECRET_KEY (Dashboard → Project Settings → API keys →
+--      secret key; the one that starts `sb_secret_`). Server-only — it
+--      must NOT be prefixed NEXT_PUBLIC_, because anything with that
+--      prefix is compiled into the JavaScript every visitor downloads,
+--      and this key bypasses RLS on every table in the project.
+--
+--      Redeploy. Nothing changes visibly: the route picks the key up on
+--      its own (see supabaseFor() in the route handler) and starts writing
+--      rows as the service role instead of as anon.
+--
+--   2. Confirm a test registration still goes through, and only then run
+--      the statement below. It removes the last thing that can write a
+--      registration without passing the limits.
+--
+-- Run them the other way round and there is a window — however short —
+-- where the anon policy is gone and the route has no key that replaces
+-- it, which is a site that accepts a payment and then cannot record it.
+--
+-- To undo: re-run this whole file. Section 1 recreates the policy.
+-- ---------------------------------------------------------------------
+
+-- drop policy if exists "Anyone may register for the cyber defence workshop"
+--   on public."workshop-modern-cyber-defence";
+
+-- The bucket policy above it stays as it is either way. The two files are
+-- still uploaded straight from the browser — see the note at the top of
+-- submit.js — because posting a payment screenshot through a serverless
+-- function on the way to storage doubles the slowest part of this form on
+-- the device it is filled in on, for a file the bucket already caps by
+-- size and mime type and that nobody but an admin can read back.
