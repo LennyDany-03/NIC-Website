@@ -21,6 +21,21 @@ npm start        # production server
 below); without them every Supabase call fails at runtime but the build still
 passes, so a broken key looks like an empty screen rather than an error.
 
+Three optional server-only variables, none of which is needed to run the site
+locally:
+
+| Variable | What it turns on | Missing means |
+|---|---|---|
+| `UPSTASH_REDIS_REST_URL` | The registration rate limit ([lib/rateLimit.js](lib/rateLimit.js)) | Every registration is allowed through — it **fails open** on purpose |
+| `UPSTASH_REDIS_REST_TOKEN` | ditto | ditto |
+| `SUPABASE_SECRET_KEY` | The register route writing rows as the service role | The route writes as `anon`, which still works |
+
+None may take a `NEXT_PUBLIC_` prefix — that prefix compiles a value into the
+bundle every visitor downloads, and `SUPABASE_SECRET_KEY` bypasses RLS on every
+table in the project. Section 3 of
+[supabase/workshop-modern-cyber-defence.sql](supabase/workshop-modern-cyber-defence.sql)
+is the other half of that key and says what order to do it in.
+
 ## What this is
 
 The site for NIC (Nextgen Intelligence Club). Next.js 16 App Router, React 19,
@@ -201,13 +216,28 @@ as an `add column if not exists` in that same file.
 The registrations table is named with hyphens to match its route, so **every raw SQL
 reference to it must be double-quoted**. supabase-js quotes for you.
 
-The public site writes to Supabase with the publishable key and no server route in
-front of it. That is a considered trade, argued at the top of
-[submit.js](components/WorkshopCyberDefence/Registration/submit.js): `anon` may
-insert and never select, the bucket is private, and a payment is confirmed by a human
-looking at a screenshot. Do not add a `select` policy for `anon` to either — it would
-publish the attendee list to anyone who opens the network tab, which is why
-`submit.js` deliberately omits `.select()` on its insert.
+The public site writes to Supabase with the publishable key and, with one
+exception, no server route in front of it. That is a considered trade, argued at
+the top of [submit.js](components/WorkshopCyberDefence/Registration/submit.js):
+`anon` may insert and never select, the bucket is private, and a payment is
+confirmed by a human looking at a screenshot. Do not add a `select` policy for
+`anon` to either — it would publish the attendee list to anyone who opens the
+network tab, which is why nothing on this path ever calls `.select()` on its
+insert.
+
+The exception is the registration **row**, which goes through
+[app/api/events/workshop-modern-cyber-defence/register/route.js](app/api/events/workshop-modern-cyber-defence/register/route.js)
+— the only server route on the site. It exists because of the rate limit and for
+no other reason: a limit counted in a bundle the person being limited downloaded
+is not a limit. Two levels, both in [lib/rateLimit.js](lib/rateLimit.js) with the
+numbers argued there — by IP, loose enough to survive the campus NAT that puts a
+whole building on one address, and by register number, which is the identity the
+abuse worth stopping actually repeats. It **fails open**: no Upstash, or an
+Upstash that is down, allows the registration. An outage that quietly stopped
+students registering would cost more than the spam it held back.
+
+The two files still go up straight from the browser, and the route takes their
+paths rather than their bytes.
 
 [useBioOverrides.js](components/useBioOverrides.js) merges admin-saved bios over the
 static roster at render time. `null` means "never touched, fall back to content.js";
@@ -234,12 +264,33 @@ redraws it to a canvas for download. **A copy change in one is a copy change in 
 other** — only `barcodeWidths` is shared.
 
 **Uploads first, row last.** [submit.js](components/WorkshopCyberDefence/Registration/submit.js)
-settles both storage uploads together, then writes the row with whichever paths
-survived and returns `missing`. A row whose `proof_path` points at an object that
-never arrived reads as a working registration until somebody clicks it. The columns
-store **paths, not URLs** — the bucket is private, so a stored URL would be a signed
-one with an expiry baked in; `createSignedUrl()` is called at the moment a
-coordinator looks.
+settles both storage uploads together, then posts the row to the route with
+whichever paths survived and returns `missing`. A row whose `proof_path` points at an
+object that never arrived reads as a working registration until somebody clicks it.
+The columns store **paths, not URLs** — the bucket is private, so a stored URL would
+be a signed one with an expiry baked in; `createSignedUrl()` is called at the moment
+a coordinator looks. A 409 from an upload is read as success, not failure: a retry
+re-uploads to paths named after a ticket code it already used, and counting "already
+there" as missing would file null paths over files that exist.
+
+**Filed on the way out of step 2, not into step 4.**
+[useFiling.js](components/WorkshopCyberDefence/Registration/useFiling.js) encodes the
+QR, draws the ticket and sends the lot when *Continue* is pressed on the payment
+step — which is why `advance` in
+[Registration/index.jsx](components/WorkshopCyberDefence/Registration/index.jsx) is
+async and can refuse to move. The rate limit forced this: a refusal has to arrive
+somewhere it can be acted on, and a screen already holding a ticket is not that
+place. Steps 3 and 4 are a receipt — by the time either renders, nothing can fail.
+The corollary is that **Back disappears once the row is filed**; everything behind it
+edits a form that no longer writes anywhere.
+
+The two [Celebration](components/WorkshopCyberDefence/Registration/Celebration.jsx)
+curtains hang off the same fact. `filed` is fired from the payment step's *result*
+and never from a step merely changing, which is the difference between a tick that
+means something and decoration. It is `fixed`, not an overlay inside the panel (a
+mark centred in a two-screen-tall step lands below the fold), and it deliberately
+does **not** raise `document.body.style.overflow` — the step swaps behind it in the
+same tick, and locking the body would cancel the scroll that swap depends on.
 
 **A QR is not a credential.** It is cut in the student's browser before anyone checks
 their payment, and it can be forwarded. The [Scanner](components/Admin/Scanner/index.jsx)
