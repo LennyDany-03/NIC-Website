@@ -16,21 +16,40 @@ npm start        # production server
 `typescript` entry point, so `eslint.config.mjs` fails to resolve. Use
 `npx next build` to verify a change compiles. There is no test suite.
 
+`.env.local` holds `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Both are public by design (see *Supabase*
+below); without them every Supabase call fails at runtime but the build still
+passes, so a broken key looks like an empty screen rather than an error.
+
 ## What this is
 
-A one-page site for NIC (Nextgen Intelligence Club), plus a `/join` route. Next.js
-16 App Router, React 19, Tailwind v4, framer-motion. TypeScript is configured with
-`allowJs`, and everything except [app/layout.tsx](app/layout.tsx) is `.jsx` — new
-components follow suit.
+The site for NIC (Nextgen Intelligence Club). Next.js 16 App Router, React 19,
+Tailwind v4, framer-motion, Supabase. TypeScript is configured with `allowJs` and
+everything except [app/layout.tsx](app/layout.tsx) and [next.config.ts](next.config.ts)
+is `.jsx` — new components follow suit. `@/*` resolves to the repo root.
 
-Tailwind v4 is CSS-first: there is no `tailwind.config`. Theme colours
-(`nic-red`, `nic-ember`, `nic-bone`) and the custom `@utility` rules live in
-[app/globals.css](app/globals.css).
+| Route | What it is |
+|---|---|
+| `/` | The front page — four pinned frame sequences, dealt one screen at a time |
+| `/join` | Recruitment copy ([JoinNotice](components/JoinNotice/index.jsx)) |
+| `/events` | The permanent board of everything the club runs ([EventsIndex](components/EventsIndex/index.jsx)) |
+| `/genesis-26` | The symposium poster page ([Genesis26](components/Genesis26/index.jsx)) |
+| `/events/workshop-modern-cyber-defence` | A poster page **plus** the four-step registration flow |
+| `/admin/*` | The coordinators' console: BOD editor, registers, scanner, attendance |
+
+Tailwind v4 is CSS-first: there is no `tailwind.config`. Every colour token and
+`@utility` rule lives in [app/globals.css](app/globals.css).
+
+**The doc comment at the top of a file is the spec.** This codebase argues for its
+own decisions at length — why the ticket code drops `0/1/I/O`, why the register
+never calls `.select()`, why the events theme moved up a directory. Read the header
+before changing a file; most of what looks arbitrary is load-bearing and the reason
+is written down a few lines above it.
 
 ## Two layouts, one page
 
-The single most important structural fact: this site is **two different layouts**,
-not one layout at two sizes. The split is
+The single most important structural fact about the front page: it is **two
+different layouts**, not one layout at two sizes. The split is
 [useIsMobile.js](components/useIsMobile.js) at 1024px — deliberately the same as
 Tailwind's `lg`, so a `lg:` class and an `isMobile` branch always agree. Never let
 them drift.
@@ -109,17 +128,135 @@ Sections are `components/<Section>/{index.jsx, content.js}`. All copy, rosters, 
 ledger and gallery entries are in `content.js`; `index.jsx` is layout only. Several
 content files carry `FILL ME IN` blocks (bios written about the *post* not the
 person, unset club social links in [siteLinks.js](components/siteLinks.js), board
-term years) — these are placeholders awaiting real data, not bugs.
+term years, the admin list in the workshop SQL) — these are placeholders awaiting
+real data, not bugs.
 
-[siteLinks.js](components/siteLinks.js) is the page's table of contents, stated once
-for both navbar and footer; every `href` there must match a `Slide` `id` below.
+[siteLinks.js](components/siteLinks.js) is the site's table of contents, stated once
+for navbar and footer. Every `#` entry must match a `Slide` `id` on the front page;
+the non-hash entries are routes. `NAV_LINKS` wants to stay **six** — the desktop bar
+splits it into halves around the Genesis pill.
 
-Shared vocabulary, used everywhere rather than re-invented per section:
-[surfaces.js](components/surfaces.js) (`PANEL`, `HEADING_SHADOW`, `LABEL_SHADOW`,
-`GRAIN_PLATE`) and [motionPresets.js](components/motionPresets.js) (`slideRise`,
-`seatCard`, …). Slide reveals run in **both** directions (`once: false`) because a
-slide can be dealt again when the visitor scrolls back, and each variant carries its
-own transition — passing a `transition` prop to a child would override both.
+Slide reveals run in **both** directions (`once: false`) because a slide can be dealt
+again when the visitor scrolls back, and each variant carries its own transition —
+passing a `transition` prop to a child would override both.
+
+## Four palettes, deliberately not one
+
+Shared vocabulary is stated once per surface and **must not cross over**:
+
+| File | Whose | Notes |
+|---|---|---|
+| [surfaces.js](components/surfaces.js) | The front page | `PANEL`, `HEADING_SHADOW`, `LABEL_SHADOW`, `GRAIN_PLATE` + [motionPresets.js](components/motionPresets.js) |
+| [eventsTheme.js](components/eventsTheme.js) | Everything under `/events` | `cyber-*` tokens. **The front page must never import this.** |
+| [Genesis26/gold.js](components/Genesis26/gold.js) | The symposium only | `genesis-*` tokens |
+| [Admin/surfaces.js](components/Admin/surfaces.js) | `/admin` | `PANEL` with the radius taken off — nothing in the admin is rounded |
+
+[app/events/layout.jsx](app/events/layout.jsx) loads three Google fonts (Orbitron /
+Poppins / Share Tech Mono) as CSS variables for the events segment alone, so the
+front page never pays for them. It sets no default family on purpose: `Navbar` and
+`Footer` render inside those routes and must stay in the site's own Geist.
+
+**An event folder is meant to be deleted whole** the day after its event runs —
+`components/Genesis26/` with `GENESIS_HREF`, `components/WorkshopCyberDefence/` with
+`WORKSHOP_HREF`. That is why the theme and the fonts live at `/events` level and not
+inside the event: `/events` is permanent and cannot depend on a folder documented as
+disposable.
+
+## Supabase
+
+Two clients, and the distinction is not cosmetic:
+
+- [lib/supabase/client.js](lib/supabase/client.js) — browser. Everything the public
+  site and most of the admin screens use.
+- [lib/supabase/server.js](lib/supabase/server.js) — Server Components. Its cookie
+  writes are best-effort and swallowed, because a Server Component cannot set
+  cookies.
+
+[proxy.js](proxy.js) is what actually refreshes the session and gates `/admin/*`.
+**Next 16 renamed `middleware` to `proxy`** — the export and the filename both — but
+the mechanics (`matcher`, `NextResponse`) are unchanged. It calls `getUser()`, which
+revalidates against Supabase Auth, rather than trusting a cookie. Pages under
+`/admin` still make their own `getUser()` check close to the data they touch: a
+layout does not re-render on every navigation within itself.
+
+### Schema and access control
+
+`supabase/*.sql` **is** the schema. There is no migration tooling — the files are
+pasted into the Supabase SQL editor by hand, and every statement is idempotent so
+re-running one is safe. Any column added after a file's first run must also appear
+as an `add column if not exists` in that same file.
+
+- [supabase/schema.sql](supabase/schema.sql) — `bod_bios` + the public `bod-photos`
+  bucket. Policies are `to authenticated`, which is fine: the table is public-read
+  anyway.
+- [supabase/workshop-modern-cyber-defence.sql](supabase/workshop-modern-cyber-defence.sql)
+  — registrations + a **private** verification bucket, and the `nic_admins` table
+  with the `is_nic_admin()` `security definer` function. Registrations are gated on
+  *that list*, not on `to authenticated`: anyone who can sign up gets a token, and
+  this table holds names, register numbers and photographs of banking apps. An
+  account not on the list signs in fine and sees an empty register — no error, no
+  data. Adding an admin is an `insert` from the SQL editor; there is no insert policy
+  on `nic_admins` on purpose.
+
+The registrations table is named with hyphens to match its route, so **every raw SQL
+reference to it must be double-quoted**. supabase-js quotes for you.
+
+The public site writes to Supabase with the publishable key and no server route in
+front of it. That is a considered trade, argued at the top of
+[submit.js](components/WorkshopCyberDefence/Registration/submit.js): `anon` may
+insert and never select, the bucket is private, and a payment is confirmed by a human
+looking at a screenshot. Do not add a `select` policy for `anon` to either — it would
+publish the attendee list to anyone who opens the network tab, which is why
+`submit.js` deliberately omits `.select()` on its insert.
+
+[useBioOverrides.js](components/useBioOverrides.js) merges admin-saved bios over the
+static roster at render time. `null` means "never touched, fall back to content.js";
+empty string means an admin cleared it — the merge in `CrewSequence` treats those
+differently.
+
+## Registration → ticket → door
+
+One pipeline across four places; the invariants below are what hold it together.
+
+**The registry.** [Admin/events.js](components/Admin/events.js) is the list of events
+that have a register behind them, and every admin screen is generic over an entry in
+it. Adding an event = run its SQL file, then add one entry naming the `table` and
+`bucket` it created. No new screens.
+
+**The code.** `ticket_code` (`MCD26-XXXXXX`) is the join key for everything a human
+does: printed on the ticket, encoded in its QR, read aloud at the door, and the name
+of both objects in the bucket. Its alphabet drops `0`, `1`, `I` and `O` because the
+real risk is transcription, not collision.
+
+**The ticket is drawn twice.** [Ticket.jsx](components/WorkshopCyberDefence/Registration/Ticket.jsx)
+is the readable one on the page; [ticketCanvas.js](components/WorkshopCyberDefence/Registration/ticketCanvas.js)
+redraws it to a canvas for download. **A copy change in one is a copy change in the
+other** — only `barcodeWidths` is shared.
+
+**Uploads first, row last.** [submit.js](components/WorkshopCyberDefence/Registration/submit.js)
+settles both storage uploads together, then writes the row with whichever paths
+survived and returns `missing`. A row whose `proof_path` points at an object that
+never arrived reads as a working registration until somebody clicks it. The columns
+store **paths, not URLs** — the bucket is private, so a stored URL would be a signed
+one with an expiry baked in; `createSignedUrl()` is called at the moment a
+coordinator looks.
+
+**A QR is not a credential.** It is cut in the student's browser before anyone checks
+their payment, and it can be forwarded. The [Scanner](components/Admin/Scanner/index.jsx)
+uses the code only to *find the row*, and `status` decides. That check is made twice
+on purpose: once for the message on screen, and once in the `update` itself via
+`.eq("status", ADMITS)`, so the database refuses to record attendance for an
+unverified ticket even if the component is wrong. Keep both.
+
+The three statuses are stated once in [Registrations/status.js](components/Admin/Registrations/status.js)
+and must match the `check` constraint in the SQL. The dropdown, the row tag and the
+scanner's verdict all read from that list — two lists that drift by one string is a
+student being refused at a door with a verified ticket.
+
+`attended_at` is written in exactly one place (the scanner), which is what makes
+[Attendance](components/Admin/Attendance/index.jsx) an attendance sheet rather than a
+second opinion. It polls every 15s; Realtime would need the table added to a
+publication, which is a schema change polling does not require.
 
 ## Verifying visual changes
 
@@ -130,3 +267,8 @@ the dev server, which serves stale Tailwind CSS for newly added arbitrary utilit
 design mistake). Check `getComputedStyle` before believing a screenshot. The sizes
 that matter are 390×844 and 1440×900 (two different layouts), plus 768×1024 and a
 landscape 844×390 for the short-viewport cases where slides stop fitting.
+
+The registration form and the scanner are phone-first and want checking at 390×844
+specifically: form fields are `text-base` (16px) because anything smaller makes iOS
+Safari zoom the page on focus, and the scanner's viewfinder is capped in `svh` as
+well as pixels for the phone-held-sideways case.
